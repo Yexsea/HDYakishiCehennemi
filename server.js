@@ -7,11 +7,18 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// Güvenlik ve Dosya Yolu Ayarları
+// Güvenlik ayarları
 app.use(cors());
+
+// Statik dosyaları (HTML, CSS) public klasöründen sun
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Socket.IO Ayarları (Bağlantı Yöneticisi)
+// ÖNEMLİ DÜZELTME: Ana sayfaya girince index.html'i zorla gönder
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Socket.IO Ayarları
 const io = new Server(server, {
     cors: {
         origin: "*",
