@@ -6,7 +6,6 @@
     <title>HDYakishi Cehennemi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Renk Teması: Hafif Pembemsi (#ff80bf) ve Koyu Arka Plan */
         :root { --primary: #ff80bf; --primary-hover: #ff99cc; --dark: #0a0a0a; --glass: rgba(20, 20, 20, 0.95); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
@@ -18,95 +17,59 @@
             background: linear-gradient(135deg, #050505 0%, #1f1016 100%);
             display: flex; flex-direction: column; align-items: center; justify-content:center; padding: 20px;
         }
-        
-        /* LOGO DÜZENLEMESİ */
-        .logo { 
-            font-size: 2.5rem; 
-            font-weight: 800; 
-            color: var(--primary); 
-            margin-bottom: 40px; 
-            letter-spacing: 1px; 
-            text-shadow: 0 0 20px rgba(255, 128, 191, 0.3); 
-            text-align: center;
-            line-height: 1.2;
-            text-transform: uppercase;
-        }
-        
-        .input-field {
-            width: 100%; max-width: 320px; padding: 15px; margin: 8px 0;
-            background: rgba(255,255,255,0.05); border: 1px solid #333; color: white; border-radius: 12px; font-size: 16px; outline: none; transition: 0.3s;
-        }
-        .input-field:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
-        
-        .btn-start {
-            width: 100%; max-width: 320px; padding: 16px; background: var(--primary);
-            border: none; color: #000; font-weight: 700; border-radius: 12px; font-size: 16px; cursor: pointer; margin-top: 20px;
-            box-shadow: 0 5px 20px rgba(255, 128, 191, 0.2); transition: 0.3s;
-        }
-        .btn-start:active { transform: scale(0.98); }
+        .logo { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 40px; text-align: center; text-transform: uppercase; text-shadow: 0 0 20px rgba(255, 128, 191, 0.3); }
+        .input-field { width: 100%; max-width: 320px; padding: 15px; margin: 8px 0; background: rgba(255,255,255,0.05); border: 1px solid #333; color: white; border-radius: 12px; font-size: 16px; outline: none; }
+        .input-field:focus { border-color: var(--primary); }
+        .btn-start { width: 100%; max-width: 320px; padding: 16px; background: var(--primary); border: none; color: #000; font-weight: 700; border-radius: 12px; font-size: 16px; cursor: pointer; margin-top: 20px; }
 
-        /* VİDEO ALANI */
+        /* VİDEO */
         #video-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: black; }
         video { width: 100%; max-height: 100vh; object-fit: contain; }
 
-        /* DOSYA SEÇİM BUTONU */
-        #file-wrapper { position: fixed; top: 20px; left: 20px; z-index: 50; }
-        #file-label {
-            background: rgba(0,0,0,0.7); padding: 10px 18px; border-radius: 30px; border: 1px solid #444;
-            cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; transition: 0.3s;
-            backdrop-filter: blur(5px); color: #fff;
+        /* YENİ: KULLANICI LİSTESİ (SAĞ ÜST) */
+        #user-list-container {
+            position: fixed; top: 20px; right: 20px; z-index: 60;
+            background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 12px;
+            backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none; /* Giriş yapana kadar gizli */
+            flex-direction: column; gap: 5px; max-width: 200px;
         }
-        #file-label:hover { border-color: var(--primary); color: var(--primary); }
+        .user-list-title { font-size: 11px; color: var(--primary); font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+        .user-item { font-size: 13px; color: white; display: flex; align-items: center; gap: 8px; }
+        .user-item::before { content: ''; width: 8px; height: 8px; background: #00ff88; border-radius: 50%; display: block; box-shadow: 0 0 5px #00ff88; }
+
+        /* DOSYA SEÇ (SOL ÜST) */
+        #file-wrapper { position: fixed; top: 20px; left: 20px; z-index: 50; }
+        #file-label { background: rgba(0,0,0,0.7); padding: 10px 18px; border-radius: 30px; border: 1px solid #444; cursor: pointer; color: #fff; display: flex; align-items: center; gap: 10px; backdrop-filter: blur(5px); }
         input[type="file"] { display: none; }
 
-        /* CHAT BUTONU */
-        #chat-toggle {
-            position: fixed; bottom: 30px; right: 30px;
-            width: 55px; height: 55px; background: var(--primary);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 22px; box-shadow: 0 5px 25px rgba(255, 128, 191, 0.3); z-index: 100; cursor: pointer; color: #000;
-        }
-        .unread-dot {
-            position: absolute; top: 0; right: 0; width: 14px; height: 14px;
-            background: white; border-radius: 50%; display: none; border: 2px solid var(--primary);
-        }
+        /* CHAT */
+        #chat-toggle { position: fixed; bottom: 30px; right: 30px; width: 55px; height: 55px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; color: #000; z-index: 100; box-shadow: 0 5px 20px rgba(255, 128, 191, 0.3); }
+        .unread-dot { position: absolute; top: 0; right: 0; width: 14px; height: 14px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
 
-        /* CHAT PENCERESİ */
-        #chat-panel {
-            position: fixed; bottom: 100px; right: 30px; width: 320px; height: 450px;
-            background: var(--glass); border-radius: 16px; border: 1px solid #333;
-            display: flex; flex-direction: column; transform: scale(0); transform-origin: bottom right;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 99;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
+        #chat-panel { position: fixed; bottom: 100px; right: 30px; width: 320px; height: 450px; background: var(--glass); border-radius: 16px; border: 1px solid #333; display: flex; flex-direction: column; transform: scale(0); transform-origin: bottom right; transition: transform 0.3s; z-index: 99; }
         #chat-panel.open { transform: scale(1); }
-        
         #chat-header { padding: 18px; border-bottom: 1px solid #333; font-weight: bold; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
         #chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         
-        .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; background: #2a2a2a; align-self: flex-start; max-width: 85%; line-height: 1.4; }
+        .msg { padding: 10px 14px; border-radius: 12px; font-size: 14px; background: #2a2a2a; align-self: flex-start; max-width: 85%; }
         .msg.mine { background: #3a2a30; align-self: flex-end; border-right: 3px solid var(--primary); color: #fff; }
-        .msg strong { display: block; font-size: 11px; color: var(--primary); margin-bottom: 3px; opacity: 0.8; }
+        
+        /* SİSTEM MESAJI STİLİ */
+        .msg.system { align-self: center; background: transparent; color: #888; font-size: 12px; font-style: italic; border: 1px dashed #444; padding: 5px 15px; }
         
         .chat-input-area { padding: 15px; border-top: 1px solid #333; display: flex; gap: 10px; }
         #msg-input { flex: 1; background: #222; border: 1px solid #333; padding: 12px; color: white; border-radius: 10px; outline: none; }
-        #msg-input:focus { border-color: var(--primary); }
-        #send-btn { background: var(--primary); border: none; width: 45px; border-radius: 10px; color: #000; cursor: pointer; font-size: 16px; transition: 0.2s; }
-        #send-btn:hover { background: var(--primary-hover); }
+        #send-btn { background: var(--primary); border: none; width: 45px; border-radius: 10px; color: #000; cursor: pointer; }
 
         /* BİLDİRİM POPUP */
-        #notification-popup {
-            position: fixed; top: 20px; right: 20px;
-            background: rgba(15, 15, 15, 0.95); padding: 16px; border-radius: 12px;
-            border-left: 4px solid var(--primary); min-width: 260px;
-            transform: translateX(150%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 200;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); pointer-events: none;
-        }
+        #notification-popup { position: fixed; top: 80px; right: 20px; background: rgba(15, 15, 15, 0.95); padding: 16px; border-radius: 12px; border-left: 4px solid var(--primary); min-width: 260px; transform: translateX(150%); transition: transform 0.4s; z-index: 200; pointer-events: none; }
         #notification-popup.show { transform: translateX(0); }
 
         @media (max-width: 768px) {
             #chat-panel { width: 90%; right: 5%; bottom: 95px; height: 50vh; }
             #file-label span { display: none; }
+            #user-list-container { top: 70px; right: 10px; font-size: 11px; } /* Mobilde biraz aşağı al */
         }
     </style>
 </head>
@@ -114,42 +77,31 @@
 
     <div id="setup-screen">
         <div class="logo">HD Yakishi<br>Cehennemi</div>
-        
         <input type="text" id="username" class="input-field" placeholder="İsminiz?" maxlength="15">
         <input type="text" id="roomname" class="input-field" placeholder="Oda Adı" value="Yakishi">
-        
-        <button class="btn-start" onclick="joinRoom()">
-            İzlemeye Başla <i class="fas fa-play" style="font-size: 0.8em; margin-left: 5px;"></i>
-        </button>
-        
-        <p style="margin-top: 25px; font-size: 0.85rem; color: #888; text-align: center; max-width: 300px; line-height: 1.5;">
-            Filmi izlemek için herkes kendi cihazından aynı video dosyasını seçmelidir.
-        </p>
+        <button class="btn-start" onclick="joinRoom()">İzlemeye Başla <i class="fas fa-play"></i></button>
+        <p style="margin-top: 25px; color: #888; font-size: 0.85rem;">Herkes kendi cihazından videoyu seçmelidir.</p>
     </div>
 
     <div id="video-container">
         <video id="main-video" playsinline controls></video>
     </div>
 
-    <div id="file-wrapper">
-        <label id="file-label">
-            <i class="fas fa-folder-open"></i> <span>Video Seç</span>
-            <input type="file" id="local-file" accept="video/mp4,video/x-m4v,video/*">
-        </label>
+    <div id="user-list-container">
+        <div class="user-list-title">İZLEYENLER</div>
+        <div id="user-list-content">
+            </div>
     </div>
 
-    <div id="chat-toggle" onclick="toggleChat()">
-        <i class="fas fa-comment"></i>
-        <div class="unread-dot" id="unread-dot"></div>
+    <div id="file-wrapper">
+        <label id="file-label"><i class="fas fa-folder-open"></i> <span>Video Seç</span><input type="file" id="local-file" accept="video/*"></label>
     </div>
+
+    <div id="chat-toggle" onclick="toggleChat()"><i class="fas fa-comment"></i><div class="unread-dot" id="unread-dot"></div></div>
 
     <div id="chat-panel">
-        <div id="chat-header">
-            <span>Sohbet</span>
-            <span style="font-size: 14px; cursor: pointer; opacity: 0.7;" onclick="toggleChat()">✕</span>
-        </div>
-        <div id="chat-messages">
-            </div>
+        <div id="chat-header"><span>Sohbet</span><span onclick="toggleChat()" style="cursor:pointer">✕</span></div>
+        <div id="chat-messages"></div>
         <div class="chat-input-area">
             <input type="text" id="msg-input" placeholder="Mesaj yaz..." autocomplete="off">
             <button id="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
@@ -157,8 +109,8 @@
     </div>
 
     <div id="notification-popup">
-        <div style="font-size: 12px; color: var(--primary); margin-bottom: 4px; font-weight: bold;" id="popup-title">Sistem</div>
-        <div style="font-size: 14px; font-weight: 500; color: #eee;" id="popup-msg">Mesaj</div>
+        <div style="font-size: 12px; color: var(--primary); font-weight: bold;" id="popup-title">Sistem</div>
+        <div style="font-size: 14px; color: #eee;" id="popup-msg">Mesaj</div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -170,12 +122,10 @@
         let isSyncing = false;
         let isChatOpen = false;
 
-        // GİRİŞ
         function joinRoom() {
             const uName = document.getElementById('username').value.trim();
             const rName = document.getElementById('roomname').value.trim();
-
-            if (!uName) { alert("Lütfen isminizi girin."); return; }
+            if (!uName) { alert("İsim girmedin yakışıklı."); return; }
 
             myName = uName;
             myRoom = rName;
@@ -184,20 +134,33 @@
             
             const setup = document.getElementById('setup-screen');
             setup.style.opacity = '0';
-            setup.style.transition = 'opacity 0.5s';
-            setTimeout(() => { setup.style.display = 'none'; }, 500);
+            setTimeout(() => { 
+                setup.style.display = 'none'; 
+                document.getElementById('user-list-container').style.display = 'flex'; // Listeyi göster
+            }, 500);
 
-            showPopup("HD Yakishi Cehennemi", "Hoşgeldin! Sol üstten videonu seçmeyi unutma.");
+            showPopup("HD Yakishi", "Hoşgeldin! Videonu seçmeyi unutma.");
         }
+
+        // KULLANICI LİSTESİ GÜNCELLEME
+        socket.on('update-user-list', (users) => {
+            const listDiv = document.getElementById('user-list-content');
+            listDiv.innerHTML = '';
+            users.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.textContent = user;
+                listDiv.appendChild(div);
+            });
+        });
 
         // VİDEO YÜKLEME
         document.getElementById('local-file').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            const fileURL = URL.createObjectURL(file);
-            video.src = fileURL;
+            video.src = URL.createObjectURL(file);
             video.load();
-            showPopup("Video Hazır", "Keyifli seyirler!");
+            showPopup("Video Hazır", "Başlatınca senkronize olacak.");
         });
 
         // SENKRONİZASYON
@@ -212,14 +175,12 @@
         socket.on('sync-update', (data) => {
             isSyncing = true;
             if (Math.abs(video.currentTime - data.time) > 0.5) video.currentTime = data.time;
-            
             if (data.type === 'play') video.play().catch(console.error);
             else if (data.type === 'pause') video.pause();
-            
             setTimeout(() => { isSyncing = false; }, 300);
         });
 
-        // CHAT
+        // CHAT VE BİLDİRİM
         function toggleChat() {
             const panel = document.getElementById('chat-panel');
             panel.classList.toggle('open');
@@ -232,25 +193,28 @@
             const txt = input.value.trim();
             if(!txt) return;
 
-            addMessageToUI("Ben", txt, true);
+            addMessageToUI("Ben", txt, true); // Kendi mesajım
+            // Loglamak için sunucuya da gönder
             socket.emit('send-message', { roomId: myRoom, sender: myName, text: txt });
             input.value = '';
         }
 
-        document.getElementById('msg-input').addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') sendMessage();
-        });
+        document.getElementById('msg-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
 
+        // Mesaj Alma (Normal ve Sistem)
         socket.on('receive-message', (data) => {
-            addMessageToUI(data.sender, data.text, false);
-            if (!isChatOpen) {
-                document.getElementById('unread-dot').style.display = 'block';
-                showPopup(data.sender, data.text);
+            if(data.isSystem) {
+                // Sistem mesajıysa popup göster ve sohbete ekle
+                showPopup("Sistem", data.text);
+                addSystemMessageToUI(data.text);
+            } else {
+                // Normal mesaj
+                addMessageToUI(data.sender, data.text, false);
+                if (!isChatOpen) {
+                    document.getElementById('unread-dot').style.display = 'block';
+                    showPopup(data.sender, data.text);
+                }
             }
-        });
-
-        socket.on('notification', (data) => {
-            showPopup(data.title, data.message);
         });
 
         function addMessageToUI(sender, text, isMine) {
@@ -258,6 +222,15 @@
             const div = document.createElement('div');
             div.className = `msg ${isMine ? 'mine' : ''}`;
             div.innerHTML = `<strong>${sender}</strong>${text}`;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function addSystemMessageToUI(text) {
+            const area = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = 'msg system';
+            div.textContent = text;
             area.appendChild(div);
             area.scrollTop = area.scrollHeight;
         }
