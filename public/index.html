@@ -148,7 +148,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // SADECE GEREKLİ AYARLAR
         const socket = io({ 
             reconnection: true, 
             reconnectionAttempts: Infinity, 
@@ -163,24 +162,24 @@
         let isChatOpen = false;
         let isCinemaMode = false;
 
-        // --- HAYATTA TUTMA (KOPMAMASI İÇİN) ---
+        // --- HAYATTA TUTMA & LİSTE GÜNCELLEME ---
         
-        // 1. Socket Heartbeat (30 saniyede bir)
+        // 1. Socket Heartbeat (10 saniyede bir - Daha sık)
+        // Artık isim ve oda bilgisini de gönderiyoruz ki sunucu listeyi düzeltebilsin.
         setInterval(() => {
-            if(socket.connected) {
-                socket.emit('heartbeat');
-                console.log("💓 Nabız atıldı");
+            if(socket.connected && myName && myRoom) {
+                socket.emit('heartbeat', { roomId: myRoom, userName: myName });
+                console.log("💓 Liste Kontrolü");
             }
-        }, 30000);
+        }, 10000);
 
-        // 2. HTTP Ping (4 dakikada bir - Render HTTP timeout yememek için)
+        // 2. HTTP Ping (4 dakikada bir - Render timeout yememek için)
         setInterval(() => {
             fetch('/ping').then(() => console.log("📡 HTTP Ping OK")).catch(e => console.log(e));
         }, 4 * 60 * 1000);
 
         // ------------------------------------
 
-        // Bağlantı durumlarını izle
         socket.on('disconnect', () => { document.getElementById('disconnect-overlay').style.display = 'flex'; });
         socket.on('connect', () => {
             document.getElementById('disconnect-overlay').style.display = 'none';
