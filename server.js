@@ -14,86 +14,96 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
+// YENİ: HTTP Kalp Atışı için Endpoint
+app.get('/ping', (req, res) => {
+    res.send('pong');
 });
 
-// Aktif kullanıcıları takip etmek için hafıza
-// Yapı: { socketId: { name: "Ali", room: "Yakishi" } }
+// Ayarlar: Zaman aşımlarını maksimuma çektik
+const io = new Server(server, {
+    cors: { origin: "*", methods: ["GET", "POST"] },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    connectionStateRecovery: {
+        // Bağlantı koparsa durumu kurtarmaya çalış (Socket.io v4.6+)
+        maxDisconnectionDuration: 2 * 60 * 1000,
+        skipMiddlewares: true,
+    }
+});
+
 const activeUsers = {};
 
 io.on('connection', (socket) => {
     
-    // Odaya Katılma
     socket.on('join-room', ({ roomId, userName }) => {
         socket.join(roomId);
-        
-        // Kullanıcıyı kaydet
         activeUsers[socket.id] = { name: userName, room: roomId };
+        console.log(`[GİRİŞ] ${userName} (${roomId})`);
 
-        console.log(`[GİRİŞ] ${userName} (${roomId}) odaya daldı.`);
-
-        // 1. Odadaki diğerlerine "Sistem Mesajı" gönder (Sohbete düşer)
+        // Sadece yeni girene değil, odadaki herkese bildir
         io.to(roomId).emit('receive-message', {
             sender: 'Sistem',
             text: `${userName} mekana giriş yaptı.`,
             isSystem: true
         });
-
-        // 2. Odadaki herkese GÜNCEL KULLANICI LİSTESİNİ gönder
         updateUserList(roomId);
     });
 
-    // Video Senkronizasyonu
     socket.on('sync-action', (data) => {
         socket.to(data.roomId).emit('sync-update', data);
     });
 
-    // Sohbet Mesajı
     socket.on('send-message', (data) => {
-        // LOGLAMA BURADA (Senin panelinde görünür)
-        console.log(`[CHAT - ${data.roomId}] ${data.sender}: ${data.text}`);
-        
-        // Mesajı herkese gönder
+        console.log(`[CHAT] ${data.sender}: ${data.text}`);
         socket.to(data.roomId).emit('receive-message', data);
     });
 
-    // Bağlantı Kopması
-    socket.on('disconnect', () => {
-        const user = activeUsers[socket.id];
-        
-        if (user) {
-            console.log(`[ÇIKIŞ] ${user.name} kaçtı.`);
-            
-            // Kullanıcıyı listeden sil
-            delete activeUsers[socket.id];
+    socket.on('keep-alive', () => {
+        // Boş cevap
+    });
 
-            // Çıktığını diğerlerine haber ver (Mesaj + Popup)
+    socket.on('disconnect', (reason) => {
+        const user = activeUsers[socket.id];
+        console.log(`[KOPMA] ${socket.id} Sebep: ${reason}`);
+        
+        // Eğer sunucu taraflı bir kopma değilse (kullanıcı kapattıysa) sil
+        // Geçici kopmalarda kullanıcıyı hemen silmiyoruz ki geri gelebilsin
+        if (reason === "transport close" || reason === "ping timeout") {
+             // Bekle, hemen silme (reconnect olabilir)
+        }
+        
+        if (user && reason === "client namespace disconnect") {
+            delete activeUsers[socket.id];
             io.to(user.room).emit('receive-message', {
                 sender: 'Sistem',
-                text: `${user.name} mekandan ayrıldı.`,
+                text: `${user.name} çıktı.`,
                 isSystem: true
             });
-
-            // Listeyi güncelle
             updateUserList(user.room);
         }
+        
+        // Temizlik (Garbage collection için her türlü listeden düşürelim ama bildirim atmayalım)
+         if (user) {
+             // 5 saniye sonra hala yoksa sil (Basit çözüm)
+             setTimeout(() => {
+                 const current = activeUsers[socket.id];
+                 if(current) { // Hala listedeyse ve tekrar bağlanmadıysa
+                     updateUserList(user.room);
+                 }
+             }, 5000);
+         }
     });
 });
 
-// Yardımcı Fonksiyon: Odadaki kullanıcıları bulup listeyi gönderir
 function updateUserList(roomId) {
     const usersInRoom = [];
-    // activeUsers objesini tarayıp o odadakileri bulalım
     for (const [id, info] of Object.entries(activeUsers)) {
-        if (info.room === roomId) {
-            usersInRoom.push(info.name);
-        }
+        if (info.room === roomId) usersInRoom.push(info.name);
     }
     io.to(roomId).emit('update-user-list', usersInRoom);
 }
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`🔥 HDYakishiCehennemi ${PORT} portunda log tutarak yanıyor...`);
+    console.log(`🔥 HDYakishiCehennemi ${PORT} portunda (Anti-Drop Modu) hazır...`);
 });
