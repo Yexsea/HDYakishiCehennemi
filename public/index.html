@@ -102,7 +102,7 @@
     <div id="disconnect-overlay">
         <i class="fas fa-wifi disconnect-icon"></i>
         <div class="disconnect-text">BAĞLANTI KOPTU!</div>
-        <p style="color: #aaa; margin-top: 10px;">Yeniden bağlanılıyor...</p>
+        <p style="color: #aaa; margin-top: 10px;">Sunucuya erişilemiyor...</p>
         <button class="reconnect-btn" onclick="location.reload()">Yenile</button>
     </div>
 
@@ -148,9 +148,10 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // SADECE GEREKLİ AYARLAR
         const socket = io({ 
             reconnection: true, 
-            reconnectionAttempts: 20, 
+            reconnectionAttempts: Infinity, 
             reconnectionDelay: 1000 
         });
         
@@ -161,47 +162,33 @@
         let isSyncing = false;
         let isChatOpen = false;
         let isCinemaMode = false;
-        let isPlannedReconnect = false; // Planlı yenileme bayrağı
 
-        // --- GELİŞMİŞ BAĞLANTI KORUMA ---
-
-        // 1. HTTP PING (5 Dakikada bir)
-        // Load Balancer'ı kandırmak için gerçek HTTP trafiği yaratır
-        setInterval(() => {
-            fetch('/ping').then(res => console.log('Ping-Pong OK')).catch(e => console.log('Ping err'));
-        }, 5 * 60 * 1000); 
-
-        // 2. PLANLI YENİLEME (10 Dakikada bir)
-        // Sunucu bizi atmadan biz bağlantıyı yenileriz
-        setInterval(() => {
-            if(socket.connected && myName) {
-                console.log("♻️ 10 dakika doldu, proaktif bağlantı tazeleme...");
-                isPlannedReconnect = true; // Kırmızı ekran çıkmasın diye
-                socket.disconnect();
-                
-                setTimeout(() => {
-                    socket.connect();
-                    isPlannedReconnect = false;
-                }, 500); // Yarım saniye sonra geri gel
-            }
-        }, 10 * 60 * 1000);
-
-        socket.on('disconnect', () => { 
-            // Eğer planlı bir yenileme DEĞİLSE hata göster
-            if (!isPlannedReconnect) {
-                document.getElementById('disconnect-overlay').style.display = 'flex'; 
-            }
-        });
+        // --- HAYATTA TUTMA (KOPMAMASI İÇİN) ---
         
+        // 1. Socket Heartbeat (30 saniyede bir)
+        setInterval(() => {
+            if(socket.connected) {
+                socket.emit('heartbeat');
+                console.log("💓 Nabız atıldı");
+            }
+        }, 30000);
+
+        // 2. HTTP Ping (4 dakikada bir - Render HTTP timeout yememek için)
+        setInterval(() => {
+            fetch('/ping').then(() => console.log("📡 HTTP Ping OK")).catch(e => console.log(e));
+        }, 4 * 60 * 1000);
+
+        // ------------------------------------
+
+        // Bağlantı durumlarını izle
+        socket.on('disconnect', () => { document.getElementById('disconnect-overlay').style.display = 'flex'; });
         socket.on('connect', () => {
             document.getElementById('disconnect-overlay').style.display = 'none';
             if(myName && myRoom) { 
                 socket.emit('join-room', { roomId: myRoom, userName: myName }); 
-                if(!isPlannedReconnect) showPopup("Sistem", "Bağlantı geldi!"); 
+                showPopup("Sistem", "Bağlantı geri geldi!");
             }
         });
-
-        // ------------------------------------
 
         function toggleCinemaMode() {
             if (!isCinemaMode) {

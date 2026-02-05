@@ -10,88 +10,74 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Ana Sayfa
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// YENİ: HTTP Kalp Atışı için Endpoint
+// Render Uyanık Kalsın Diye HTTP Ping Noktası
 app.get('/ping', (req, res) => {
-    res.send('pong');
+    res.status(200).send('pong');
 });
 
-// Ayarlar: Zaman aşımlarını maksimuma çektik
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    connectionStateRecovery: {
-        // Bağlantı koparsa durumu kurtarmaya çalış (Socket.io v4.6+)
-        maxDisconnectionDuration: 2 * 60 * 1000,
-        skipMiddlewares: true,
-    }
+    pingTimeout: 60000, // 60 saniye tolerans
+    pingInterval: 25000 // 25 saniyede bir kontrol
 });
 
 const activeUsers = {};
 
 io.on('connection', (socket) => {
     
+    // Odaya Giriş
     socket.on('join-room', ({ roomId, userName }) => {
         socket.join(roomId);
         activeUsers[socket.id] = { name: userName, room: roomId };
-        console.log(`[GİRİŞ] ${userName} (${roomId})`);
+        console.log(`[GİRİŞ] ${userName} -> ${roomId}`);
 
-        // Sadece yeni girene değil, odadaki herkese bildir
+        // Odaya bildirim
         io.to(roomId).emit('receive-message', {
             sender: 'Sistem',
-            text: `${userName} mekana giriş yaptı.`,
+            text: `${userName} odaya katıldı.`,
             isSystem: true
         });
+        
+        // Listeyi güncelle
         updateUserList(roomId);
     });
 
+    // Video Senkronizasyonu (Play/Pause/Seek)
     socket.on('sync-action', (data) => {
+        // Gönderen HARİÇ odadaki herkese ilet
         socket.to(data.roomId).emit('sync-update', data);
     });
 
+    // Mesajlaşma
     socket.on('send-message', (data) => {
-        console.log(`[CHAT] ${data.sender}: ${data.text}`);
+        console.log(`[MSG] ${data.sender}: ${data.text}`);
         socket.to(data.roomId).emit('receive-message', data);
     });
 
-    socket.on('keep-alive', () => {
-        // Boş cevap
+    // Kalp Atışı (Sadece log kirliliği yapmasın diye boş bırakıyoruz)
+    socket.on('heartbeat', () => {
+        // Sunucu bu mesajı alınca bağlantıyı canlı sayar.
     });
 
-    socket.on('disconnect', (reason) => {
+    // Çıkış
+    socket.on('disconnect', () => {
         const user = activeUsers[socket.id];
-        console.log(`[KOPMA] ${socket.id} Sebep: ${reason}`);
-        
-        // Eğer sunucu taraflı bir kopma değilse (kullanıcı kapattıysa) sil
-        // Geçici kopmalarda kullanıcıyı hemen silmiyoruz ki geri gelebilsin
-        if (reason === "transport close" || reason === "ping timeout") {
-             // Bekle, hemen silme (reconnect olabilir)
-        }
-        
-        if (user && reason === "client namespace disconnect") {
+        if (user) {
+            console.log(`[ÇIKIŞ] ${user.name}`);
             delete activeUsers[socket.id];
+            
             io.to(user.room).emit('receive-message', {
                 sender: 'Sistem',
-                text: `${user.name} çıktı.`,
+                text: `${user.name} ayrıldı.`,
                 isSystem: true
             });
             updateUserList(user.room);
         }
-        
-        // Temizlik (Garbage collection için her türlü listeden düşürelim ama bildirim atmayalım)
-         if (user) {
-             // 5 saniye sonra hala yoksa sil (Basit çözüm)
-             setTimeout(() => {
-                 const current = activeUsers[socket.id];
-                 if(current) { // Hala listedeyse ve tekrar bağlanmadıysa
-                     updateUserList(user.room);
-                 }
-             }, 5000);
-         }
     });
 });
 
@@ -105,5 +91,5 @@ function updateUserList(roomId) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`🔥 HDYakishiCehennemi ${PORT} portunda (Anti-Drop Modu) hazır...`);
+    console.log(`🔥 HDYakishiCehennemi ${PORT} portunda hazır.`);
 });
