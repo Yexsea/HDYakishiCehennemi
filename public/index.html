@@ -12,20 +12,34 @@
         body { background: var(--dark); color: #e0e0e0; height: 100vh; overflow: hidden; cursor: default; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
 
+        #app-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+
+        /* AMBILIGHT KATMANI (Videonun arkası) */
+        #ambilight-canvas {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100%; height: 100%; z-index: 0;
+            filter: blur(60px) brightness(0.6); opacity: 0; transition: opacity 1s ease;
+        }
+
         #video-container { 
             width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; 
-            background: black; position: relative; overflow: hidden;
+            background: transparent; position: relative; overflow: hidden; z-index: 10;
         }
-        video { width: 100%; max-height: 100vh; object-fit: contain; }
+        video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; }
+
+        /* ÇİZİM KATMANI (Videonun üstü) */
+        #drawing-canvas {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            z-index: 400; pointer-events: none; /* Normalde tıklanamaz */
+        }
+        #drawing-canvas.active { pointer-events: auto; cursor: crosshair; }
 
         /* MOUSE İMLEÇLERİ */
         .remote-cursor {
             position: absolute; pointer-events: none; z-index: 500;
             width: 12px; height: 12px; border-radius: 50%;
-            background: #ff2e63; 
-            box-shadow: 0 0 10px #ff2e63, 0 0 20px #ff2e63;
-            transform: translate(-50%, -50%);
-            transition: left 0.1s linear, top 0.1s linear;
+            background: #ff2e63; box-shadow: 0 0 10px #ff2e63;
+            transform: translate(-50%, -50%); transition: left 0.1s linear, top 0.1s linear;
         }
         .cursor-name {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
@@ -35,46 +49,63 @@
         .cursor-trail {
             position: absolute; pointer-events: none; z-index: 499;
             width: 8px; height: 8px; border-radius: 50%;
-            background: rgba(255, 46, 99, 0.6);
-            transform: translate(-50%, -50%);
+            background: rgba(255, 46, 99, 0.6); transform: translate(-50%, -50%);
             animation: fadeTrail 0.6s linear forwards;
         }
-        @keyframes fadeTrail {
-            0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
-        }
+        @keyframes fadeTrail { 0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); } }
 
         /* UYARILAR */
         #emergency-alert {
             position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
             background: rgba(255, 0, 0, 0.95); color: white; padding: 30px;
             border-radius: 12px; z-index: 10000; text-align: center;
-            box-shadow: 0 0 50px rgba(255,0,0,0.8); display: none; 
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid white;
+            box-shadow: 0 0 50px rgba(255,0,0,0.8); display: none; border: 2px solid white;
         }
-        @keyframes popIn { from { transform: translate(-50%, -20px) scale(0.8); opacity: 0; } to { transform: translate(-50%, 0) scale(1); opacity: 1; } }
-
         #duration-warning { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); background: rgba(255, 165, 0, 0.9); color: white; padding: 15px 25px; border-radius: 10px; z-index: 9999; display: none; text-align: center; box-shadow: 0 0 20px rgba(255,165,0,0.5); font-weight: bold; }
-        
         #disconnect-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .disconnect-icon { font-size: 4rem; color: #ff4444; margin-bottom: 20px; animation: pulse 1s infinite; }
         .reconnect-btn { margin-top: 20px; padding: 10px 20px; background: white; color: black; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         /* UI */
         .ui-element { transition: opacity 0.5s ease, visibility 0.5s; opacity: 1; visibility: visible; }
         .ui-hidden { opacity: 0; visibility: hidden; }
 
-        #custom-fullscreen-btn { position: absolute; bottom: 20px; right: 80px; background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255, 255, 255, 0.3); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 80; font-size: 1rem; backdrop-filter: blur(4px); transition: 0.3s; }
-
+        /* SİNEMA MODU CSS */
         .cinema-mode-active { display: flex !important; flex-direction: row !important; }
         .cinema-mode-active #video-container { width: 70% !important; height: 100vh !important; }
         .cinema-mode-active #chat-panel { position: static !important; width: 30% !important; height: 100vh !important; transform: scale(1) !important; border-radius: 0 !important; border-left: 1px solid #333; display: flex !important; }
-        @media (max-width: 768px) { .cinema-mode-active { flex-direction: row !important; } .cinema-mode-active #video-container { width: 65% !important; } .cinema-mode-active #chat-panel { width: 35% !important; } .cinema-mode-active #chat-toggle { display: none !important; } }
         .force-fullscreen { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9000 !important; background: black !important; }
+        @media (max-width: 768px) { .cinema-mode-active { flex-direction: row !important; } .cinema-mode-active #video-container { width: 65% !important; } .cinema-mode-active #chat-panel { width: 35% !important; } .cinema-mode-active #chat-toggle { display: none !important; } }
 
-        #chat-toggle { position: fixed; bottom: 30px; right: 30px; width: 55px; height: 55px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; color: #000; z-index: 9999; box-shadow: 0 5px 20px rgba(255, 128, 191, 0.5); }
+        /* BUTON GRUBU (SAĞ ALT) */
+        .bottom-right-controls {
+            position: fixed; bottom: 30px; right: 30px; 
+            display: flex; gap: 15px; align-items: center; z-index: 9999;
+        }
+
+        #chat-toggle, #settings-toggle { 
+            width: 55px; height: 55px; background: var(--primary); border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 22px; cursor: pointer; color: #000; 
+            box-shadow: 0 5px 20px rgba(255, 128, 191, 0.5); transition: transform 0.2s;
+        }
+        #settings-toggle { background: #333; color: white; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+        #chat-toggle:active, #settings-toggle:active { transform: scale(0.9); }
+        
         .unread-dot { position: absolute; top: 0; right: 0; width: 14px; height: 14px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
+
+        /* AYARLAR MENÜSÜ */
+        #settings-menu {
+            position: absolute; bottom: 70px; right: 0; 
+            background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px;
+            padding: 10px; min-width: 180px; display: none; flex-direction: column; gap: 5px;
+            backdrop-filter: blur(10px);
+        }
+        #settings-menu.open { display: flex; }
+        .settings-item {
+            padding: 10px; color: white; font-size: 13px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px;
+        }
+        .settings-item:hover { background: rgba(255,255,255,0.1); }
+        .settings-item i { width: 20px; text-align: center; }
 
         #chat-panel { position: fixed; bottom: 100px; right: 30px; width: 320px; height: 450px; background: var(--glass); border-radius: 16px; border: 1px solid #333; display: flex; flex-direction: column; transform: scale(0); transform-origin: bottom right; transition: transform 0.3s; z-index: 9998; }
         #chat-panel.open { transform: scale(1); }
@@ -95,11 +126,9 @@
 
         #chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
         #chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        
         .msg { padding: 8px 12px; border-radius: 8px; font-size: 13px; background: rgba(255,255,255,0.08); align-self: flex-start; max-width: 85%; }
         .msg.mine { background: rgba(255, 128, 191, 0.2); align-self: flex-end; border-right: 2px solid var(--primary); color: #fff; }
         .msg.system { align-self: center; background: transparent; color: #666; font-size: 11px; font-style: italic; border: none; padding: 2px; }
-        
         .chat-input-area { padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px; }
         #msg-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 10px; color: white; border-radius: 8px; outline: none; font-size: 13px; }
         #send-btn { background: var(--primary); border: none; width: 40px; border-radius: 8px; color: #000; cursor: pointer; }
@@ -115,25 +144,23 @@
         #typing-indicator.visible { opacity: 1; }
         #notification-popup { position: fixed; top: 80px; right: 20px; background: rgba(15, 15, 15, 0.95); padding: 12px 16px; border-radius: 8px; border-left: 3px solid var(--primary); min-width: 200px; transform: translateX(150%); transition: transform 0.4s; z-index: 200; pointer-events: none; }
         #notification-popup.show { transform: translateX(0); }
-        #app-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; }
     </style>
 </head>
 <body>
 
-    <div id="reaction-container"></div>
+    <canvas id="ambilight-canvas"></canvas>
 
+    <div id="reaction-container"></div>
     <div id="emergency-alert">
         <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 10px; color: #ff4444;"></i><br>
         <div id="emergency-msg" style="font-size: 1.2rem; font-weight: bold;">BAĞLANTI KOPTU</div>
         <div style="font-size: 0.9rem; margin-top: 5px;">Video güvenlik amacıyla durduruldu.</div>
     </div>
-
     <div id="duration-warning">
         <i class="fas fa-exclamation-triangle"></i> DİKKAT!<br>
         <span style="font-size: 12px; font-weight: normal;">Video süreleri uyuşmuyor.</span>
         <div style="margin-top:10px; font-size:11px; opacity: 0.8;" id="duration-diff-msg"></div>
     </div>
-
     <div id="disconnect-overlay">
         <i class="fas fa-wifi disconnect-icon"></i>
         <div style="font-size: 1.2rem; font-weight: bold;">BAĞLANTI KOPTU</div>
@@ -145,15 +172,12 @@
         <input type="text" id="username" class="input-field" placeholder="İsminiz?" maxlength="15">
         <input type="text" id="roomname" class="input-field" placeholder="Oda Adı" value="Yakishi">
         <button class="btn-start" onclick="joinRoom()">İzlemeye Başla <i class="fas fa-play"></i></button>
-        <p style="margin-top: 25px; color: #888; font-size: 0.85rem;">Herkes kendi cihazından videoyu seçmelidir.</p>
     </div>
 
     <div id="app-wrapper">
         <div id="video-container">
             <video id="main-video" playsinline controls></video>
-            <div id="custom-fullscreen-btn" class="ui-element" onclick="toggleCinemaMode()" title="Sinema Modu">
-                <i class="fas fa-columns"></i>
-            </div>
+            <canvas id="drawing-canvas"></canvas>
         </div>
 
         <div id="user-list-container">
@@ -165,7 +189,22 @@
             <label id="file-label"><i class="fas fa-folder-open"></i> <span>Video Yükle</span><input type="file" id="local-file" accept="video/*"></label>
         </div>
 
-        <div id="chat-toggle" class="ui-element" onclick="toggleChat()"><i class="fas fa-comment"></i><div class="unread-dot" id="unread-dot"></div></div>
+        <div class="bottom-right-controls ui-element">
+            
+            <div style="position: relative;">
+                <div id="settings-toggle" onclick="toggleSettings()"><i class="fas fa-cog"></i></div>
+                <div id="settings-menu">
+                    <div class="settings-item" onclick="toggleCinemaMode()">
+                        <i class="fas fa-columns"></i> Sinema Modu
+                    </div>
+                    <div class="settings-item" onclick="toggleAmbilight()">
+                        <i class="fas fa-lightbulb"></i> Ambilight
+                    </div>
+                </div>
+            </div>
+
+            <div id="chat-toggle" onclick="toggleChat()"><i class="fas fa-comment"></i><div class="unread-dot" id="unread-dot"></div></div>
+        </div>
 
         <div id="chat-panel">
             <div id="chat-header">
@@ -179,8 +218,13 @@
                 <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
                 <button class="reaction-btn" onclick="sendReaction('😲')">😲</button>
                 <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+                
                 <button id="mouse-share-btn" class="reaction-btn" onclick="toggleMouseShare()" title="Farenizi Paylaşın">
                     <i class="fas fa-mouse-pointer"></i>
+                </button>
+                
+                <button id="draw-btn" class="reaction-btn" onclick="toggleDrawing()" title="Çizim Yap">
+                    <i class="fas fa-pencil-alt"></i>
                 </button>
             </div>
             <div class="chat-input-area">
@@ -197,15 +241,14 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io({ 
-            reconnection: true, 
-            reconnectionAttempts: Infinity, 
-            reconnectionDelay: 1000 
-        });
-        
+        const socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
         const video = document.getElementById('main-video');
         const appWrapper = document.getElementById('app-wrapper');
         const videoContainer = document.getElementById('video-container');
+        const drawingCanvas = document.getElementById('drawing-canvas');
+        const ctx = drawingCanvas.getContext('2d');
+        const ambilightCanvas = document.getElementById('ambilight-canvas');
+        const ambilightCtx = ambilightCanvas.getContext('2d');
         
         let myName = "";
         let myRoom = "";
@@ -213,45 +256,162 @@
         let isChatOpen = false;
         let isCinemaMode = false;
         let isMouseSharing = false;
+        let isDrawing = false; // Mod açık mı?
+        let isPainting = false; // Mouse basılı mı?
+        let isAmbilightOn = false;
+        
         let uiTimeout;
         let typingTimeout;
         let lastMouseTime = 0;
+        let lastDrawPos = { x: 0, y: 0 };
 
-        // --- SAYFA YÜKLENİNCE HAFIZADAN OKU ---
         document.addEventListener('DOMContentLoaded', () => {
             const savedName = localStorage.getItem('yakishi_username');
             const savedRoom = localStorage.getItem('yakishi_roomname');
             if(savedName) document.getElementById('username').value = savedName;
             if(savedRoom) document.getElementById('roomname').value = savedRoom;
+            
+            // Canvas boyutunu ayarla
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
         });
 
-        // --- MOUSE HAREKETİ ---
+        function resizeCanvas() {
+            drawingCanvas.width = videoContainer.clientWidth;
+            drawingCanvas.height = videoContainer.clientHeight;
+        }
+
+        // --- AMBILIGHT ---
+        function toggleAmbilight() {
+            isAmbilightOn = !isAmbilightOn;
+            if (isAmbilightOn) {
+                ambilightCanvas.style.opacity = '1';
+                renderAmbilight();
+                showPopup("Ayarlar", "Ambilight Açık");
+            } else {
+                ambilightCanvas.style.opacity = '0';
+                showPopup("Ayarlar", "Ambilight Kapalı");
+            }
+        }
+
+        function renderAmbilight() {
+            if (!isAmbilightOn) return;
+            if (!video.paused && !video.ended) {
+                ambilightCtx.drawImage(video, 0, 0, ambilightCanvas.width, ambilightCanvas.height);
+            }
+            requestAnimationFrame(renderAmbilight);
+        }
+
+        // --- AYARLAR MENÜSÜ ---
+        function toggleSettings() {
+            const menu = document.getElementById('settings-menu');
+            menu.classList.toggle('open');
+        }
+
+        // --- ÇİZİM MODU ---
+        function toggleDrawing() {
+            isDrawing = !isDrawing;
+            const btn = document.getElementById('draw-btn');
+            if (isDrawing) {
+                btn.classList.add('active');
+                drawingCanvas.classList.add('active');
+                if(isMouseSharing) toggleMouseShare(); // Mouse takibini kapat, karışmasın
+                showPopup("Sistem", "Çizim Modu: Videoya çiz!");
+            } else {
+                btn.classList.remove('active');
+                drawingCanvas.classList.remove('active');
+            }
+        }
+
+        drawingCanvas.addEventListener('mousedown', startDraw);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', endDraw);
+        drawingCanvas.addEventListener('touchstart', (e) => startDraw(e.touches[0]));
+        drawingCanvas.addEventListener('touchmove', (e) => draw(e.touches[0]));
+        drawingCanvas.addEventListener('touchend', endDraw);
+
+        function startDraw(e) {
+            if (!isDrawing) return;
+            isPainting = true;
+            const rect = drawingCanvas.getBoundingClientRect();
+            lastDrawPos = {
+                x: (e.clientX - rect.left) / rect.width, // Yüzde olarak sakla
+                y: (e.clientY - rect.top) / rect.height
+            };
+        }
+
+        function draw(e) {
+            if (!isDrawing || !isPainting) return;
+            const rect = drawingCanvas.getBoundingClientRect();
+            const currentX = (e.clientX - rect.left) / rect.width;
+            const currentY = (e.clientY - rect.top) / rect.height;
+
+            // Çiz
+            drawOnCanvas(lastDrawPos.x, lastDrawPos.y, currentX, currentY, '#ff2e63');
+
+            // Gönder
+            socket.emit('draw-line', {
+                roomId: myRoom,
+                startX: lastDrawPos.x,
+                startY: lastDrawPos.y,
+                endX: currentX,
+                endY: currentY,
+                color: '#ff2e63'
+            });
+
+            lastDrawPos = { x: currentX, y: currentY };
+        }
+
+        function endDraw() { isPainting = false; }
+
+        socket.on('draw-line', (data) => {
+            drawOnCanvas(data.startX, data.startY, data.endX, data.endY, data.color);
+        });
+
+        function drawOnCanvas(x1, y1, x2, y2, color) {
+            const w = drawingCanvas.width;
+            const h = drawingCanvas.height;
+
+            ctx.beginPath();
+            ctx.moveTo(x1 * w, y1 * h);
+            ctx.lineTo(x2 * w, y2 * h);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // 2 Saniye sonra sil (Fade out efekti zor olduğu için direkt temizliyoruz)
+            setTimeout(() => {
+                // Basit temizlik: Tüm canvas'ı silmek yerine belirli bölgeyi silmek zor.
+                // Şimdilik 2 saniye sonra tüm canvas temizleniyor, spor yorumcusu gibi.
+                // Gelişmiş versiyonda katmanlı silme yapılabilir ama bu yeterli.
+                ctx.clearRect(0, 0, w, h); 
+            }, 2000);
+        }
+
+        // --- MOUSE SHARE ---
         function toggleMouseShare() {
             isMouseSharing = !isMouseSharing;
             const btn = document.getElementById('mouse-share-btn');
             if (isMouseSharing) {
                 btn.classList.add('active');
+                if(isDrawing) toggleDrawing(); // Çizimi kapat
                 showPopup("Sistem", "Fare paylaşımı AÇIK");
             } else {
                 btn.classList.remove('active');
-                showPopup("Sistem", "Fare paylaşımı KAPALI");
             }
         }
-
-        document.addEventListener('mousemove', (e) => {
+        
+        videoContainer.addEventListener('mousemove', (e) => {
             resetUiTimer();
             if (!isMouseSharing || !myName) return;
-
             const now = Date.now();
             if (now - lastMouseTime > 50) { 
                 const rect = videoContainer.getBoundingClientRect();
-                if (e.clientX >= rect.left && e.clientX <= rect.right &&
-                    e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                    
+                if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
                     lastMouseTime = now;
                     const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
                     const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
-                    
                     socket.emit('mouse-move', { roomId: myRoom, x: xPercent, y: yPercent });
                 }
             }
@@ -282,13 +442,12 @@
             videoContainer.appendChild(dot);
             setTimeout(() => { dot.remove(); }, 600);
         }
-
+        
         socket.on('remove-cursor', (data) => {
             const cursor = document.getElementById(`cursor-${data.id}`);
             if(cursor) cursor.remove();
         });
 
-        // --- ACİL DURUM FRENİ ---
         socket.on('emergency-pause', (data) => {
             video.pause();
             const alertBox = document.getElementById('emergency-alert');
@@ -297,7 +456,6 @@
             setTimeout(() => { alertBox.style.display = 'none'; }, 5000);
         });
 
-        // --- DİĞER ---
         function resetUiTimer() {
             document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
             document.body.style.cursor = 'default';
@@ -311,15 +469,12 @@
         }
         document.addEventListener('click', resetUiTimer);
         document.addEventListener('touchstart', resetUiTimer);
-
         setInterval(() => { fetch('/ping').catch(e => {}); }, 4 * 60 * 1000);
-
         socket.on('disconnect', () => { document.getElementById('disconnect-overlay').style.display = 'flex'; });
         socket.on('connect', () => {
             document.getElementById('disconnect-overlay').style.display = 'none';
             if(myName && myRoom) { socket.emit('join-room', { roomId: myRoom, userName: myName }); showPopup("Sistem", "Bağlandı"); }
         });
-
         function sendReaction(type) { showReactionAnim(type); socket.emit('send-reaction', { roomId: myRoom, type: type }); }
         socket.on('show-reaction', (type) => { showReactionAnim(type); });
         function showReactionAnim(type) {
@@ -328,7 +483,6 @@
             const leftPos = Math.random() * 80 + 10; el.style.left = leftPos + '%';
             container.appendChild(el); setTimeout(() => { el.remove(); }, 3000);
         }
-
         const msgInput = document.getElementById('msg-input');
         msgInput.addEventListener('input', () => {
             socket.emit('typing-start', myRoom);
@@ -340,7 +494,6 @@
             if (data.isTyping && data.user !== myName) { indicator.textContent = `${data.user} yazıyor...`; indicator.classList.add('visible'); } 
             else { indicator.classList.remove('visible'); }
         });
-
         video.onloadedmetadata = () => { if(myRoom) socket.emit('video-duration', { roomId: myRoom, duration: video.duration }); };
         socket.on('duration-error', (data) => {
             const warn = document.getElementById('duration-warning');
@@ -348,7 +501,6 @@
             const diff = Math.round(Math.abs(data.serverDuration - data.yourDuration) / 60);
             msg.textContent = `Fark: Yaklaşık ${diff} dakika`; warn.style.display = 'block'; setTimeout(() => { warn.style.display = 'none'; }, 10000);
         });
-
         function toggleCinemaMode() {
             if (!isCinemaMode) {
                 appWrapper.classList.add('cinema-mode-active');
@@ -366,34 +518,27 @@
                 if(window.innerWidth < 768) { document.getElementById('chat-panel').classList.remove('open'); }
             }
         }
-
         function joinRoom() {
             const uName = document.getElementById('username').value.trim();
             const rName = document.getElementById('roomname').value.trim();
             if (!uName) { alert("İsim girmedin."); return; }
             myName = uName; myRoom = rName;
-
-            // HAFIZAYA KAYDET
             localStorage.setItem('yakishi_username', myName);
             localStorage.setItem('yakishi_roomname', myRoom);
-
             socket.emit('join-room', { roomId: myRoom, userName: myName });
             const setup = document.getElementById('setup-screen');
             setup.style.opacity = '0';
             setTimeout(() => { setup.style.display = 'none'; document.getElementById('user-list-container').style.display = 'flex'; }, 500);
         }
-
         socket.on('update-user-list', (users) => {
             const listDiv = document.getElementById('user-list-content');
             listDiv.innerHTML = '';
             users.forEach(user => { const div = document.createElement('div'); div.className = 'user-item'; div.textContent = user; listDiv.appendChild(div); });
         });
-
         document.getElementById('local-file').addEventListener('change', function(e) {
             const file = e.target.files[0]; if (!file) return;
             video.src = URL.createObjectURL(file); video.load(); showPopup("Video Hazır", "İyi seyirler");
         });
-
         video.onplay = () => { resetUiTimer(); if(!isSyncing) emitSync('play', video.currentTime); };
         video.onpause = () => { resetUiTimer(); if(!isSyncing) emitSync('pause', video.currentTime); };
         video.onseeked = () => { if(!isSyncing) emitSync('seek', video.currentTime); };
@@ -404,14 +549,12 @@
             if (data.type === 'play') video.play().catch(console.error); else if (data.type === 'pause') video.pause();
             setTimeout(() => { isSyncing = false; }, 300);
         });
-
         function toggleChat() {
             const panel = document.getElementById('chat-panel');
             panel.classList.toggle('open');
             isChatOpen = panel.classList.contains('open');
             if(isChatOpen) document.getElementById('unread-dot').style.display = 'none';
         }
-
         function sendMessage() {
             const input = document.getElementById('msg-input');
             const txt = input.value.trim();
