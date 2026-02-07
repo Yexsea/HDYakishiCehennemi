@@ -15,39 +15,71 @@
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         * { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* VİDEO KAPLAYICI */
         #video-container { 
             width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; 
             background: black; position: relative; transition: all 0.3s ease;
         }
         video { width: 100%; max-height: 100vh; object-fit: contain; }
 
-        /* ARAYÜZ ELEMANLARI (Otomatik Gizlenme İçin Sadece Bunlar) */
-        .ui-element {
-            transition: opacity 0.5s ease, visibility 0.5s;
-            opacity: 1; visibility: visible;
+        /* EMOJİ YAĞMURU KONTEYNERİ */
+        #reaction-container {
+            position: fixed; inset: 0; pointer-events: none; z-index: 8000; overflow: hidden;
         }
+        .floating-emoji {
+            position: absolute; bottom: -50px; font-size: 2rem;
+            animation: floatUp 3s linear forwards; opacity: 0.8;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            10% { opacity: 1; transform: translateY(-50px) scale(1.2); }
+            100% { transform: translateY(-100vh) scale(1); opacity: 0; }
+        }
+
+        /* EMOJİ BUTONLARI (Chat'in üstünde) */
+        .reaction-bar {
+            display: flex; gap: 10px; padding: 10px; justify-content: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .reaction-btn {
+            background: rgba(255,255,255,0.1); border: none; font-size: 1.2rem;
+            padding: 5px 10px; border-radius: 20px; cursor: pointer; transition: 0.2s;
+        }
+        .reaction-btn:hover { background: var(--primary); transform: scale(1.1); }
+        .reaction-btn:active { transform: scale(0.9); }
+
+        /* YAZIYOR GÖSTERGESİ */
+        #typing-indicator {
+            font-size: 11px; color: var(--primary); font-style: italic;
+            height: 15px; padding-left: 15px; margin-bottom: 5px; opacity: 0; transition: opacity 0.3s;
+        }
+        #typing-indicator.visible { opacity: 1; }
+
+        /* SÜRE HATASI UYARISI */
+        #duration-warning {
+            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+            background: rgba(255, 0, 0, 0.9); color: white; padding: 15px 25px;
+            border-radius: 10px; z-index: 9999; display: none; text-align: center;
+            box-shadow: 0 0 20px rgba(255,0,0,0.5); font-weight: bold;
+        }
+
+        /* UI ELEMENTS */
+        .ui-element { transition: opacity 0.5s ease, visibility 0.5s; opacity: 1; visibility: visible; }
         .ui-hidden { opacity: 0; visibility: hidden; }
 
-        /* SİNEMA MODU BUTONU (SAĞ ALT) */
         #custom-fullscreen-btn {
             position: absolute; bottom: 20px; right: 80px; 
             background: rgba(0, 0, 0, 0.6); color: white; border: 1px solid rgba(255, 255, 255, 0.3);
             width: 40px; height: 40px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; z-index: 80; font-size: 1rem; backdrop-filter: blur(4px); 
-            transition: 0.3s;
+            cursor: pointer; z-index: 80; font-size: 1rem; backdrop-filter: blur(4px); transition: 0.3s;
         }
-        #custom-fullscreen-btn:active { transform: scale(0.9); background: var(--primary); }
 
-        /* MOBİLDE YATAY MOD (TWITCH TARZI) */
         .cinema-mode-active { display: flex !important; flex-direction: row !important; }
         .cinema-mode-active #video-container { width: 70% !important; height: 100vh !important; }
         .cinema-mode-active #chat-panel {
             position: static !important; width: 30% !important; height: 100vh !important;
             transform: scale(1) !important; border-radius: 0 !important; border-left: 1px solid #333; display: flex !important;
         }
-
         @media (max-width: 768px) {
             .cinema-mode-active { flex-direction: row !important; }
             .cinema-mode-active #video-container { width: 65% !important; }
@@ -55,22 +87,15 @@
             .cinema-mode-active #chat-toggle { display: none !important; }
         }
 
-        .force-fullscreen {
-            position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important;
-            z-index: 9000 !important; background: black !important;
-        }
+        .force-fullscreen { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 9000 !important; background: black !important; }
 
-        /* CHAT BUTONU */
         #chat-toggle { 
-            position: fixed; bottom: 30px; right: 30px; 
-            width: 55px; height: 55px; background: var(--primary); 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            font-size: 22px; cursor: pointer; color: #000; z-index: 9999; 
-            box-shadow: 0 5px 20px rgba(255, 128, 191, 0.5); 
+            position: fixed; bottom: 30px; right: 30px; width: 55px; height: 55px; 
+            background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            font-size: 22px; cursor: pointer; color: #000; z-index: 9999; box-shadow: 0 5px 20px rgba(255, 128, 191, 0.5); 
         }
         .unread-dot { position: absolute; top: 0; right: 0; width: 14px; height: 14px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
 
-        /* CHAT PENCERESİ */
         #chat-panel { 
             position: fixed; bottom: 100px; right: 30px; width: 320px; height: 450px; 
             background: var(--glass); border-radius: 16px; border: 1px solid #333; 
@@ -79,27 +104,15 @@
         }
         #chat-panel.open { transform: scale(1); }
 
-        /* KİŞİ LİSTESİ (ESKİ HALİNE DÖNDÜ AMA YEŞİL NOKTA YOK) */
-        /* ui-element sınıfı vermeyeceğiz, hep görünecek */
         #user-list-container { 
             position: fixed; top: 20px; right: 20px; z-index: 60; 
-            background: rgba(0, 0, 0, 0.6); /* Kutu geri geldi */
-            padding: 10px 15px; 
-            border-radius: 12px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: none; /* Giriş yapınca açılacak */
-            flex-direction: column; gap: 5px; max-width: 200px; 
+            background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 12px;
+            backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none; flex-direction: column; gap: 5px; max-width: 200px; 
         }
-        .user-list-title { 
-            font-size: 11px; color: var(--primary); font-weight: bold; margin-bottom: 5px; display: block; /* Başlık geri geldi */
-        }
-        .user-item { 
-            font-size: 13px; color: white; display: flex; align-items: center; gap: 8px; 
-        }
-        /* Yeşil nokta (::before) tamamen kaldırıldı */
+        .user-list-title { font-size: 11px; color: var(--primary); font-weight: bold; margin-bottom: 5px; display: block; }
+        .user-item { font-size: 13px; color: white; display: flex; align-items: center; gap: 8px; }
 
-        /* DOSYA SEÇ BUTONU */
         #file-wrapper { position: fixed; top: 20px; left: 20px; z-index: 50; }
         #file-label { 
             background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 8px; 
@@ -109,13 +122,11 @@
         #file-label:hover { background: rgba(0,0,0,0.8); color: white; }
         input[type="file"] { display: none; }
 
-        /* GİRİŞ EKRANI */
         #setup-screen { position: fixed; inset: 0; z-index: 1000; background: linear-gradient(135deg, #050505 0%, #1f1016 100%); display: flex; flex-direction: column; align-items: center; justify-content:center; padding: 20px; }
         .logo { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 40px; text-align: center; text-transform: uppercase; text-shadow: 0 0 20px rgba(255, 128, 191, 0.3); }
         .input-field { width: 100%; max-width: 320px; padding: 15px; margin: 8px 0; background: rgba(255,255,255,0.05); border: 1px solid #333; color: white; border-radius: 12px; font-size: 16px; outline: none; }
         .btn-start { width: 100%; max-width: 320px; padding: 16px; background: var(--primary); border: none; color: #000; font-weight: 700; border-radius: 12px; font-size: 16px; cursor: pointer; margin-top: 20px; }
 
-        /* DİĞER */
         #chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
         #chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
         
@@ -136,10 +147,17 @@
         #notification-popup.show { transform: translateX(0); }
 
         #app-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; }
-
     </style>
 </head>
 <body>
+
+    <div id="reaction-container"></div>
+
+    <div id="duration-warning">
+        <i class="fas fa-exclamation-triangle"></i> DİKKAT!<br>
+        <span style="font-size: 12px; font-weight: normal;">Senin video süren diğerlerinden farklı.<br>Farklı bir dosya seçmiş olabilirsin.</span>
+        <div style="margin-top:10px; font-size:11px; opacity: 0.8;" id="duration-diff-msg"></div>
+    </div>
 
     <div id="disconnect-overlay">
         <i class="fas fa-wifi disconnect-icon"></i>
@@ -156,7 +174,6 @@
     </div>
 
     <div id="app-wrapper">
-        
         <div id="video-container">
             <video id="main-video" playsinline controls></video>
             <div id="custom-fullscreen-btn" class="ui-element" onclick="toggleCinemaMode()" title="Sinema Modu">
@@ -180,13 +197,23 @@
                 <span>Sohbet</span>
                 <span id="close-chat-btn" onclick="toggleChat()" style="cursor:pointer">✕</span>
             </div>
+            
             <div id="chat-messages"></div>
+            
+            <div id="typing-indicator"></div>
+
+            <div class="reaction-bar">
+                <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
+                <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
+                <button class="reaction-btn" onclick="sendReaction('😲')">😲</button>
+                <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+            </div>
+
             <div class="chat-input-area">
                 <input type="text" id="msg-input" placeholder="Mesaj..." autocomplete="off">
                 <button id="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
-
     </div>
 
     <div id="notification-popup">
@@ -197,7 +224,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
-        
         const video = document.getElementById('main-video');
         const appWrapper = document.getElementById('app-wrapper');
         let myName = "";
@@ -206,12 +232,12 @@
         let isChatOpen = false;
         let isCinemaMode = false;
         let uiTimeout;
+        let typingTimeout;
 
         function resetUiTimer() {
             document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
             document.body.style.cursor = 'default';
             clearTimeout(uiTimeout);
-            
             if (!video.paused) {
                 uiTimeout = setTimeout(() => {
                     document.querySelectorAll('.ui-element').forEach(el => el.classList.add('ui-hidden'));
@@ -219,7 +245,6 @@
                 }, 3000);
             }
         }
-
         document.addEventListener('mousemove', resetUiTimer);
         document.addEventListener('click', resetUiTimer);
         document.addEventListener('touchstart', resetUiTimer);
@@ -233,13 +258,69 @@
             if(myName && myRoom) { socket.emit('join-room', { roomId: myRoom, userName: myName }); showPopup("Sistem", "Bağlandı"); }
         });
 
+        // --- EMOJİ ÖZELLİĞİ ---
+        function sendReaction(type) {
+            // Önce kendi ekranımda göster
+            showReactionAnim(type);
+            // Sonra herkese gönder
+            socket.emit('send-reaction', { roomId: myRoom, type: type });
+        }
+        socket.on('show-reaction', (type) => {
+            showReactionAnim(type);
+        });
+        function showReactionAnim(type) {
+            const container = document.getElementById('reaction-container');
+            const el = document.createElement('div');
+            el.className = 'floating-emoji';
+            el.textContent = type;
+            // Rastgele yatay pozisyon (%10 ile %90 arası)
+            const leftPos = Math.random() * 80 + 10;
+            el.style.left = leftPos + '%';
+            container.appendChild(el);
+            setTimeout(() => { el.remove(); }, 3000);
+        }
+
+        // --- YAZIYOR... ÖZELLİĞİ ---
+        const msgInput = document.getElementById('msg-input');
+        msgInput.addEventListener('input', () => {
+            socket.emit('typing-start', myRoom);
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                socket.emit('typing-stop', myRoom);
+            }, 1500);
+        });
+        socket.on('user-typing', (data) => {
+            const indicator = document.getElementById('typing-indicator');
+            if (data.isTyping && data.user !== myName) {
+                indicator.textContent = `${data.user} yazıyor...`;
+                indicator.classList.add('visible');
+            } else {
+                indicator.classList.remove('visible');
+            }
+        });
+
+        // --- SÜRE KONTROLÜ ---
+        video.onloadedmetadata = () => {
+             // Metadata (süre) yüklenince sunucuya bildir
+             if(myRoom) {
+                 socket.emit('video-duration', { roomId: myRoom, duration: video.duration });
+             }
+        };
+        socket.on('duration-error', (data) => {
+            const warn = document.getElementById('duration-warning');
+            const msg = document.getElementById('duration-diff-msg');
+            const diff = Math.round(Math.abs(data.serverDuration - data.yourDuration) / 60);
+            msg.textContent = `Fark: Yaklaşık ${diff} dakika`;
+            warn.style.display = 'block';
+            setTimeout(() => { warn.style.display = 'none'; }, 10000); // 10 sn sonra gizle
+        });
+
+        // --- DİĞER FONKSİYONLAR ---
         function toggleCinemaMode() {
             if (!isCinemaMode) {
                 appWrapper.classList.add('cinema-mode-active');
                 isCinemaMode = true;
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(e => console.log('Yatay kilitlenemedi:', e));
-                }
+                if (screen.orientation && screen.orientation.lock) { screen.orientation.lock('landscape').catch(e => {}); }
                 if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(e=>{});
                 document.getElementById('chat-panel').classList.add('open');
                 document.getElementById('close-chat-btn').style.display = 'none';
@@ -277,7 +358,8 @@
 
         document.getElementById('local-file').addEventListener('change', function(e) {
             const file = e.target.files[0]; if (!file) return;
-            video.src = URL.createObjectURL(file); video.load();
+            video.src = URL.createObjectURL(file); 
+            video.load();
             showPopup("Video Hazır", "İyi seyirler");
         });
 

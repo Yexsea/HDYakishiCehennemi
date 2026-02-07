@@ -25,6 +25,8 @@ const io = new Server(server, {
 });
 
 const activeUsers = {};
+// Oda bazlı video sürelerini tutacağız
+const roomDurations = {}; 
 
 io.on('connection', (socket) => {
     
@@ -43,7 +45,46 @@ io.on('connection', (socket) => {
         updateUserList(roomId);
     });
 
-    // Video Senkronizasyonu
+    // 1. EMOJİ YAĞMURU
+    socket.on('send-reaction', (data) => {
+        // data = { roomId, type: 'heart' }
+        socket.to(data.roomId).emit('show-reaction', data.type);
+    });
+
+    // 2. YAZIYOR... GÖSTERGESİ
+    socket.on('typing-start', (roomId) => {
+        const user = activeUsers[socket.id];
+        if (user) {
+            socket.to(roomId).emit('user-typing', { user: user.name, isTyping: true });
+        }
+    });
+
+    socket.on('typing-stop', (roomId) => {
+        const user = activeUsers[socket.id];
+        if (user) {
+            socket.to(roomId).emit('user-typing', { user: user.name, isTyping: false });
+        }
+    });
+
+    // 3. VİDEO SÜRE KONTROLÜ (GÜVENLİK)
+    socket.on('video-duration', ({ roomId, duration }) => {
+        // Eğer odada kayıtlı bir süre yoksa ilk gelen kişinin süresini baz al
+        if (!roomDurations[roomId]) {
+            roomDurations[roomId] = duration;
+        } else {
+            // Kayıtlı süre ile karşılaştır (2 saniye tolerans tanı)
+            const diff = Math.abs(roomDurations[roomId] - duration);
+            if (diff > 2) {
+                // Sadece hatayı yapan kişiye uyarı gönder
+                socket.emit('duration-error', { 
+                    serverDuration: roomDurations[roomId], 
+                    yourDuration: duration 
+                });
+            }
+        }
+    });
+
+    // Senkronizasyon
     socket.on('sync-action', (data) => {
         socket.to(data.roomId).emit('sync-update', data);
     });
@@ -54,20 +95,12 @@ io.on('connection', (socket) => {
         socket.to(data.roomId).emit('receive-message', data);
     });
 
-    // --- DÜZELTME BURADA: AKILLI KALP ATIŞI ---
-    // İstemci her "Ben buradayım" dediğinde listeyi kontrol ediyoruz
+    // Kalp Atışı (Liste Kurtarma)
     socket.on('heartbeat', (data) => {
-        // Eğer kullanıcı bağlı ama listede kaydı yoksa (Sessiz reconnect durumu)
         if (!activeUsers[socket.id] && data.roomId && data.userName) {
             console.log(`[RECOVER] ${data.userName} listeye geri eklendi.`);
-            
-            // 1. Kullanıcıyı tekrar odaya sok (Socket odası düşmüş olabilir)
             socket.join(data.roomId);
-            
-            // 2. Listeye kaydet
             activeUsers[socket.id] = { name: data.userName, room: data.roomId };
-            
-            // 3. Herkese güncel listeyi yolla
             updateUserList(data.roomId);
         }
     });
@@ -76,7 +109,6 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         const user = activeUsers[socket.id];
         if (user) {
-            console.log(`[ÇIKIŞ] ${user.name}`);
             delete activeUsers[socket.id];
             
             io.to(user.room).emit('receive-message', {
@@ -84,6 +116,13 @@ io.on('connection', (socket) => {
                 text: `${user.name} ayrıldı.`,
                 isSystem: true
             });
+            
+            // Eğer odada kimse kalmadıysa süre bilgisini sıfırla
+            const usersLeft = Object.values(activeUsers).filter(u => u.room === user.room).length;
+            if (usersLeft === 0) {
+                delete roomDurations[user.room];
+            }
+
             updateUserList(user.room);
         }
     });
@@ -94,7 +133,6 @@ function updateUserList(roomId) {
     for (const [id, info] of Object.entries(activeUsers)) {
         if (info.room === roomId) usersInRoom.push(info.name);
     }
-    // Listeyi odaya yayınla
     io.to(roomId).emit('update-user-list', usersInRoom);
 }
 
