@@ -18,22 +18,33 @@ app.get('/ping', (req, res) => {
     res.status(200).send('pong');
 });
 
+// --- AYARLAR ---
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
-    pingTimeout: 60000,
-    pingInterval: 25000
+    // Optimize Edilmiş Hız Ayarı:
+    pingTimeout: 5000,    // 5 saniye ses gelmezse düşür (Hata payı bırakır)
+    pingInterval: 2000,   // 2 saniyede bir yokla (Sunucuyu yormaz ama hızlıdır)
+    connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000,
+        skipMiddlewares: true,
+    }
 });
 
 const activeUsers = {};
-// Oda bazlı video sürelerini tutacağız
 const roomDurations = {}; 
 
 io.on('connection', (socket) => {
     
-    // Odaya Giriş
     socket.on('join-room', ({ roomId, userName }) => {
+        // HAYALET TEMİZLİĞİ: Aynı isimde biri varsa eskisini sil
+        for (const [id, user] of Object.entries(activeUsers)) {
+            if (user.name === userName && user.room === roomId) {
+                delete activeUsers[id];
+            }
+        }
+
         socket.join(roomId);
-        activeUsers[socket.id] = { name: userName, room: roomId };
+        activeUsers[socket.id] = { name: userName, room: roomId, color: getRandomColor() };
         console.log(`[GİRİŞ] ${userName} -> ${roomId}`);
 
         io.to(roomId).emit('receive-message', {
@@ -45,37 +56,37 @@ io.on('connection', (socket) => {
         updateUserList(roomId);
     });
 
-    // 1. EMOJİ YAĞMURU
+    // MOUSE HAREKETİ
+    socket.on('mouse-move', (data) => {
+        socket.to(data.roomId).emit('mouse-update', {
+            id: socket.id,
+            x: data.x,
+            y: data.y,
+            name: activeUsers[socket.id]?.name || '?',
+            color: activeUsers[socket.id]?.color || '#ff0000'
+        });
+    });
+
     socket.on('send-reaction', (data) => {
-        // data = { roomId, type: 'heart' }
         socket.to(data.roomId).emit('show-reaction', data.type);
     });
 
-    // 2. YAZIYOR... GÖSTERGESİ
     socket.on('typing-start', (roomId) => {
         const user = activeUsers[socket.id];
-        if (user) {
-            socket.to(roomId).emit('user-typing', { user: user.name, isTyping: true });
-        }
+        if (user) socket.to(roomId).emit('user-typing', { user: user.name, isTyping: true });
     });
 
     socket.on('typing-stop', (roomId) => {
         const user = activeUsers[socket.id];
-        if (user) {
-            socket.to(roomId).emit('user-typing', { user: user.name, isTyping: false });
-        }
+        if (user) socket.to(roomId).emit('user-typing', { user: user.name, isTyping: false });
     });
 
-    // 3. VİDEO SÜRE KONTROLÜ (GÜVENLİK)
     socket.on('video-duration', ({ roomId, duration }) => {
-        // Eğer odada kayıtlı bir süre yoksa ilk gelen kişinin süresini baz al
         if (!roomDurations[roomId]) {
             roomDurations[roomId] = duration;
         } else {
-            // Kayıtlı süre ile karşılaştır (2 saniye tolerans tanı)
             const diff = Math.abs(roomDurations[roomId] - duration);
-            if (diff > 2) {
-                // Sadece hatayı yapan kişiye uyarı gönder
+            if (diff > 5) { 
                 socket.emit('duration-error', { 
                     serverDuration: roomDurations[roomId], 
                     yourDuration: duration 
@@ -84,56 +95,56 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Senkronizasyon
     socket.on('sync-action', (data) => {
         socket.to(data.roomId).emit('sync-update', data);
     });
 
-    // Mesajlaşma
     socket.on('send-message', (data) => {
-        console.log(`[MSG] ${data.sender}: ${data.text}`);
         socket.to(data.roomId).emit('receive-message', data);
     });
 
-    // Kalp Atışı (Liste Kurtarma)
     socket.on('heartbeat', (data) => {
         if (!activeUsers[socket.id] && data.roomId && data.userName) {
-            console.log(`[RECOVER] ${data.userName} listeye geri eklendi.`);
             socket.join(data.roomId);
-            activeUsers[socket.id] = { name: data.userName, room: data.roomId };
+            activeUsers[socket.id] = { name: data.userName, room: data.roomId, color: getRandomColor() };
             updateUserList(data.roomId);
         }
     });
 
-    // Çıkış
-    socket.on('disconnect', () => {
+    // ÇIKIŞ VE ACİL FREN
+    socket.on('disconnect', (reason) => {
         const user = activeUsers[socket.id];
         if (user) {
-            delete activeUsers[socket.id];
+            console.log(`[ÇIKIŞ] ${user.name}`);
             
             io.to(user.room).emit('receive-message', {
                 sender: 'Sistem',
-                text: `${user.name} ayrıldı.`,
+                text: `${user.name} düştü! Video durduruluyor.`,
                 isSystem: true
             });
-            
-            // Eğer odada kimse kalmadıysa süre bilgisini sıfırla
-            const usersLeft = Object.values(activeUsers).filter(u => u.room === user.room).length;
-            if (usersLeft === 0) {
-                delete roomDurations[user.room];
-            }
 
+            io.to(user.room).emit('emergency-pause', { userName: user.name });
+            io.to(user.room).emit('remove-cursor', { id: socket.id });
+
+            delete activeUsers[socket.id];
             updateUserList(user.room);
+
+            const usersLeft = Object.values(activeUsers).filter(u => u.room === user.room).length;
+            if (usersLeft === 0) delete roomDurations[user.room];
         }
     });
 });
 
 function updateUserList(roomId) {
-    const usersInRoom = [];
+    const uniqueNames = new Set();
     for (const [id, info] of Object.entries(activeUsers)) {
-        if (info.room === roomId) usersInRoom.push(info.name);
+        if (info.room === roomId) uniqueNames.add(info.name);
     }
-    io.to(roomId).emit('update-user-list', usersInRoom);
+    io.to(roomId).emit('update-user-list', Array.from(uniqueNames));
+}
+
+function getRandomColor() {
+    return `hsl(${Math.random() * 360}, 100%, 60%)`;
 }
 
 const PORT = process.env.PORT || 3000;
