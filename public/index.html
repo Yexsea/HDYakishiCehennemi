@@ -26,13 +26,19 @@
         #video-wrapper { 
             width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; 
             background: transparent; position: relative; overflow: hidden; z-index: 10;
-            transition: width 0.3s ease; /* Split screen için animasyon */
+            transition: width 0.3s ease;
         }
         video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; }
 
         /* ÇİZİM KATMANI */
-        #drawing-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 400; pointer-events: none; touch-action: none; }
-        
+        /* Varsayılan olarak tıklanamaz, JS ile 'active' olunca tıklanabilir olacak */
+        #drawing-canvas { 
+            position: absolute; inset: 0; width: 100%; height: 100%; 
+            z-index: 400; pointer-events: none; touch-action: none; 
+        }
+        /* Active sınıfı eklenince tıklamaları yakala */
+        #drawing-canvas.active { pointer-events: auto !important; cursor: crosshair; }
+
         /* --- DESKTOP KONTROLLERİ --- */
         .desktop-controls {
             position: absolute; bottom: 0; left: 0; width: 100%;
@@ -42,7 +48,7 @@
             transition: opacity 0.3s ease; opacity: 1;
         }
 
-        /* İNCE PROGRESS BAR (SÜRÜKLEME DESTEKLİ) */
+        /* İNCE PROGRESS BAR */
         .progress-container {
             width: 100%; height: 4px; 
             background: rgba(255,255,255,0.2);
@@ -56,9 +62,9 @@
         .progress-thumb {
             position: absolute; right: -5px; top: 50%; transform: translateY(-50%) scale(0); 
             width: 10px; height: 10px; background: white; border-radius: 50%;
-            transition: transform 0.1s ease;
+            transition: transform 0.1s ease; pointer-events: none;
         }
-        .progress-container:hover .progress-thumb, .progress-container.active .progress-thumb { transform: translateY(-50%) scale(1); }
+        .progress-container:hover .progress-thumb { transform: translateY(-50%) scale(1); }
 
         .controls-row { display: flex; align-items: center; justify-content: space-between; }
         .controls-left, .controls-right { display: flex; align-items: center; gap: 15px; }
@@ -94,38 +100,23 @@
             .desktop-controls { display: none !important; }
             .mobile-controls { display: flex !important; }
             #ambilight-canvas { display: none; }
-            
-            /* Varsayılan Mobil Chat (Floating) */
             #chat-panel { width: 85%; right: 7.5%; bottom: 80px; height: 350px; }
         }
 
         /* --- MOBİL SPLIT SCREEN (SİNEMA MODU) --- */
-        /* Bu class body'e eklendiğinde devreye girer */
-        body.mobile-cinema-active #app-wrapper {
-            flex-direction: row; /* Yan yana diz */
-        }
-        
-        body.mobile-cinema-active #video-wrapper {
-            width: 65%; /* Video Solda */
-            height: 100vh;
-        }
+        body.mobile-cinema-active #app-wrapper { flex-direction: row; }
+        body.mobile-cinema-active #video-wrapper { width: 65%; height: 100vh; }
+        /* Sinema modunda video tam otursun */
+        body.mobile-cinema-active video { object-fit: contain; width: 100%; height: 100%; } 
         
         body.mobile-cinema-active #chat-panel {
-            width: 35%; /* Chat Sağda */
-            height: 100vh !important;
-            top: 0; right: 0; bottom: 0;
-            border-radius: 0;
-            border-left: 1px solid #333;
-            transform: none !important;
-            opacity: 1 !important;
-            display: flex !important;
-            background: rgba(10, 10, 10, 0.95);
+            width: 35%; height: 100vh !important; top: 0; right: 0; bottom: 0; 
+            border-radius: 0; border-left: 1px solid #333; 
+            transform: none !important; opacity: 1 !important; 
+            display: flex !important; background: rgba(10, 10, 10, 0.95); 
             z-index: 20000;
         }
-        
-        body.mobile-cinema-active .mobile-controls {
-            width: 65%; /* Butonlar sadece video kısmında kalsın */
-        }
+        body.mobile-cinema-active .mobile-controls { width: 65%; }
 
         /* Ortak UI */
         #settings-menu { position: absolute; bottom: 60px; right: 20px; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; padding: 10px; min-width: 160px; display: none; flex-direction: column; gap: 5px; backdrop-filter: blur(10px); z-index: 10000; }
@@ -167,7 +158,7 @@
         #send-btn { background: var(--primary); border: none; width: 40px; border-radius: 8px; color: #fff; cursor: pointer; }
         .unread-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
 
-        #reaction-container { position: fixed; inset: 0; pointer-events: none; z-index: 8000; overflow: hidden; }
+        #reaction-container { position: absolute; inset: 0; pointer-events: none; z-index: 12000; overflow: hidden; }
         .floating-emoji { position: absolute; bottom: -50px; font-size: 2rem; animation: floatUp 3s linear forwards; opacity: 0.8; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 10% { opacity: 1; transform: translateY(-50px) scale(1.2); } 100% { transform: translateY(-100vh) scale(1); opacity: 0; } }
         .reaction-bar { display: flex; gap: 10px; padding: 10px; justify-content: center; border-top: 1px solid rgba(255,255,255,0.1); }
@@ -184,7 +175,7 @@
         #emergency-alert { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(255, 0, 0, 0.95); color: white; padding: 30px; border-radius: 12px; z-index: 10000; text-align: center; box-shadow: 0 0 50px rgba(255,0,0,0.8); display: none; border: 2px solid white; }
         #duration-warning { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); background: rgba(255, 165, 0, 0.9); color: white; padding: 15px 25px; border-radius: 10px; z-index: 9999; display: none; text-align: center; box-shadow: 0 0 20px rgba(255,165,0,0.5); font-weight: bold; }
         #disconnect-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        #notification-popup { position: fixed; top: 80px; right: 20px; background: rgba(15, 15, 15, 0.95); padding: 12px 16px; border-radius: 8px; border-left: 3px solid var(--primary); min-width: 200px; transform: translateX(150%); transition: transform 0.4s; z-index: 200; pointer-events: none; }
+        #notification-popup { position: absolute; top: 80px; right: 20px; background: rgba(15, 15, 15, 0.95); padding: 12px 16px; border-radius: 8px; border-left: 3px solid var(--primary); min-width: 200px; transform: translateX(150%); transition: transform 0.4s; z-index: 13000; pointer-events: none; }
         #notification-popup.show { transform: translateX(0); }
     </style>
 </head>
@@ -194,7 +185,6 @@
     <div id="drop-overlay">VİDEOYU BIRAK</div>
     <canvas id="ambilight-canvas"></canvas>
 
-    <div id="reaction-container"></div>
     <div id="emergency-alert"><i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 10px; color: #ff4444;"></i><br><div id="emergency-msg" style="font-size: 1.2rem; font-weight: bold;">BAĞLANTI KOPTU</div></div>
     <div id="duration-warning"><i class="fas fa-exclamation-triangle"></i> DİKKAT!<br><span style="font-size: 12px;">Süreler uyuşmuyor.</span><div style="margin-top:10px; font-size:11px; opacity: 0.8;" id="duration-diff-msg"></div></div>
     <div id="disconnect-overlay"><i class="fas fa-wifi" style="font-size: 4rem; color: #ff4444; margin-bottom: 20px;"></i><div style="font-size: 1.2rem; font-weight: bold;">BAĞLANTI KOPTU</div><button class="reconnect-btn" onclick="location.reload()" style="margin-top:20px; padding:10px 20px; border-radius:8px; border:none; font-weight:bold;">Yenile</button></div>
@@ -207,6 +197,10 @@
     </div>
 
     <div id="app-wrapper">
+        
+        <div id="reaction-container"></div>
+        <div id="notification-popup"><div style="font-size: 11px; color: var(--primary); font-weight: bold;" id="popup-title">Sistem</div><div style="font-size: 13px; color: #eee;" id="popup-msg">Mesaj</div></div>
+
         <div id="video-wrapper">
             <video id="main-video" playsinline></video>
             <canvas id="drawing-canvas"></canvas>
@@ -283,11 +277,6 @@
         </div>
     </div>
 
-    <div id="notification-popup">
-        <div style="font-size: 11px; color: var(--primary); font-weight: bold;" id="popup-title">Sistem</div>
-        <div style="font-size: 13px; color: #eee;" id="popup-msg">Mesaj</div>
-    </div>
-
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
@@ -300,7 +289,7 @@
         const progressBarContainer = document.getElementById('progress-container');
         const progressBarFilled = document.getElementById('progress-bar');
         const dropOverlay = document.getElementById('drop-overlay');
-        const appWrapper = document.getElementById('app-wrapper'); // Wrapper'ı seç
+        const appWrapper = document.getElementById('app-wrapper');
         
         let audioCtx, gainNode, source;
         let myName = "", myRoom = "", isSyncing = false, isChatOpen = false;
@@ -308,11 +297,9 @@
         let uiTimeout, lastMouseTime = 0, lastDrawPos = { x: 0, y: 0 }, drawingPaths = [];
         let isScrubbing = false; 
         
-        // Cihaz Kontrolü
         const isMobile = window.innerWidth <= 768;
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Eğer mobilse native controls aç
             if(isMobile) {
                 video.setAttribute('controls', 'true');
             } else {
@@ -328,13 +315,12 @@
             loopDrawing();
         });
 
-        // --- SCRUBBING (SÜRÜKLEME) MANTIK ---
+        // --- SCRUBBING (DESKTOP) ---
         if (!isMobile) {
             progressBarContainer.addEventListener('mousedown', startScrub);
             
             function startScrub(e) {
                 isScrubbing = true;
-                progressBarContainer.classList.add('active'); // CSS ile kalınlaşmasını istemiyorsan bunu kapa
                 handleScrub(e);
                 document.addEventListener('mousemove', handleScrub);
                 document.addEventListener('mouseup', endScrub);
@@ -345,9 +331,7 @@
                 const rect = progressBarContainer.getBoundingClientRect();
                 let percent = (e.clientX - rect.left) / rect.width;
                 percent = Math.max(0, Math.min(1, percent));
-                
                 progressBarFilled.style.width = `${percent * 100}%`;
-                
                 if (video.duration) {
                     video.currentTime = percent * video.duration;
                     document.getElementById('curr-time').innerText = formatTime(video.currentTime);
@@ -357,7 +341,6 @@
             function endScrub() {
                 if (!isScrubbing) return;
                 isScrubbing = false;
-                progressBarContainer.classList.remove('active');
                 emitSync('seek', video.currentTime);
                 document.removeEventListener('mousemove', handleScrub);
                 document.removeEventListener('mouseup', endScrub);
@@ -370,7 +353,7 @@
             isAmbilightOn = !isAmbilightOn; const btn = document.getElementById('settings-toggle');
             if (isAmbilightOn) { 
                 ambilightCanvas.style.opacity = '1'; 
-                loopAmbilight(); // DÖNGÜYÜ BAŞLAT
+                loopAmbilight(); 
                 showPopup("Ayarlar", "Ambilight Açık"); 
             } 
             else { ambilightCanvas.style.opacity = '0'; showPopup("Ayarlar", "Ambilight Kapalı"); }
@@ -378,7 +361,6 @@
         
         function loopAmbilight() {
             if (!isAmbilightOn) return; 
-            // Video oynasa da oynamasa da her framede çiz
             if (video.readyState >= 2) { 
                 ambilightCtx.drawImage(video, 0, 0, ambilightCanvas.width, ambilightCanvas.height); 
             }
@@ -405,21 +387,15 @@
             const uName = document.getElementById('username').value.trim();
             const rName = document.getElementById('roomname').value.trim();
             if (!uName) { alert("İsim girmedin."); return; }
-            
             myName = uName; myRoom = rName;
-            localStorage.setItem('yakishi_username', myName); 
-            localStorage.setItem('yakishi_roomname', myRoom);
-            
+            localStorage.setItem('yakishi_username', myName); localStorage.setItem('yakishi_roomname', myRoom);
             document.getElementById('setup-screen').style.display = 'none';
             const introScreen = document.getElementById('intro-screen');
             const introVideo = document.getElementById('intro-video');
             introScreen.style.display = 'flex';
-            
-            // INTRO SKIP LISTENERLARI
             document.addEventListener('keydown', skipIntro);
             introScreen.addEventListener('click', skipIntro);
             introScreen.addEventListener('touchstart', skipIntro);
-
             introVideo.play().catch(e => skipIntro());
             introVideo.onended = skipIntro;
             introVideo.onerror = skipIntro;
@@ -428,16 +404,12 @@
         function skipIntro() {
             if(introSkipped) return;
             introSkipped = true;
-            
-            // Listenerları temizle
             document.removeEventListener('keydown', skipIntro);
             const introScreen = document.getElementById('intro-screen');
             introScreen.removeEventListener('click', skipIntro);
             introScreen.removeEventListener('touchstart', skipIntro);
-            
             introScreen.style.display = 'none';
             document.getElementById('intro-video').pause();
-            
             joinRoom();
         }
 
@@ -448,7 +420,7 @@
             if(!isMobile) document.getElementById('custom-controls').style.display = 'flex'; 
         }
 
-        // --- AUDIO BOOST (Desktop Only) ---
+        // --- AUDIO BOOST ---
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -475,7 +447,7 @@
             if (video.muted) icon.className = 'fas fa-volume-mute'; else icon.className = 'fas fa-volume-up';
         }
 
-        // --- DRAG DROP (Desktop) ---
+        // --- DRAG DROP ---
         document.body.addEventListener('dragover', (e) => { e.preventDefault(); dropOverlay.classList.add('active'); });
         document.body.addEventListener('dragleave', (e) => { if (e.clientX === 0 || e.clientY === 0) dropOverlay.classList.remove('active'); });
         document.body.addEventListener('drop', (e) => {
@@ -486,7 +458,7 @@
             }
         });
 
-        // --- KLAVYE (Desktop) ---
+        // --- KLAVYE ---
         document.addEventListener('keydown', (e) => {
             if (document.activeElement.tagName === "INPUT" || isMobile) return;
             const currentVol = parseFloat(document.querySelector('.volume-slider').value);
@@ -564,7 +536,7 @@
         }
         document.addEventListener('mousemove', resetUiTimer);
 
-        // --- DRAWING (Desktop Only) ---
+        // --- DRAWING ---
         function resizeCanvas() { drawingCanvas.width = videoWrapper.clientWidth; drawingCanvas.height = videoWrapper.clientHeight; }
         
         function toggleDrawing() {
@@ -584,11 +556,21 @@
             }
         }
         
+        // ÖNEMLİ: Çizim yaparken tıklama video wrapper'a gitmesin
+        drawingCanvas.addEventListener('click', (e) => {
+            if(isDrawing) e.stopPropagation();
+        });
+
         drawingCanvas.addEventListener('mousedown', (e) => startDraw(e));
         drawingCanvas.addEventListener('mousemove', (e) => draw(e));
         drawingCanvas.addEventListener('mouseup', endDraw);
         
-        function startDraw(pos) { if (!isDrawing || isMobile) return; isPainting = true; const rect = drawingCanvas.getBoundingClientRect(); lastDrawPos = { x: (pos.clientX - rect.left) / rect.width, y: (pos.clientY - rect.top) / rect.height }; }
+        function startDraw(pos) { 
+            if (!isDrawing || isMobile) return; 
+            isPainting = true; 
+            const rect = drawingCanvas.getBoundingClientRect(); 
+            lastDrawPos = { x: (pos.clientX - rect.left) / rect.width, y: (pos.clientY - rect.top) / rect.height }; 
+        }
         function draw(pos) {
             if (!isDrawing || !isPainting || isMobile) return;
             const rect = drawingCanvas.getBoundingClientRect();
@@ -656,33 +638,35 @@
 
         function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
         
-        // --- SİNEMA MODU (SPLIT SCREEN FIX) ---
+        // --- SİNEMA MODU (SPLIT SCREEN & FULLSCREEN) ---
         function toggleCinemaMode() {
             isCinemaMode = !isCinemaMode;
             if (isCinemaMode) { 
-                // Mobil için class ekle (Split Screen aktif et)
                 document.body.classList.add('mobile-cinema-active');
                 
-                video.style.objectFit = 'cover'; 
-                showPopup("Mod", "Sinema Modu"); 
-                
+                // MOBİLDE GERÇEK FULLSCREEN AÇ
                 if(isMobile) {
-                    // Mobildeyken chat panelini aç ki sağ tarafta gözüksün
+                    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+                    if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(e=>{});
                     const panel = document.getElementById('chat-panel');
                     panel.classList.add('open');
+                } else {
+                    // Desktop
+                    video.style.objectFit = 'cover'; 
+                    showPopup("Mod", "Sinema Modu"); 
                 }
             } 
             else { 
-                // Class'ı kaldır
                 document.body.classList.remove('mobile-cinema-active');
                 
-                video.style.objectFit = 'contain'; 
-                showPopup("Mod", "Normal Mod"); 
-                
                 if(isMobile) {
-                    // Normal moda dönünce chati kapat (Floating moda dön)
+                    if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
+                    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
                     const panel = document.getElementById('chat-panel');
                     panel.classList.remove('open');
+                } else {
+                    video.style.objectFit = 'contain'; 
+                    showPopup("Mod", "Normal Mod"); 
                 }
             }
         }
