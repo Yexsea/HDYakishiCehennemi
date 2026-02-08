@@ -6,8 +6,8 @@
     <title>HDYakishi Cehennemi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* TEMA RENGİ: NEON PEMBE (#ff2e63) olarak sabitlendi */
-        :root { --primary: #ff2e63; --dark: #0a0a0a; --glass: rgba(20, 20, 20, 0.95); }
+        /* TEMA RENGİ: ESKİ TATLI PEMBE (#ff80bf) */
+        :root { --primary: #ff80bf; --dark: #0a0a0a; --glass: rgba(20, 20, 20, 0.95); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
         body { background: var(--dark); color: #e0e0e0; height: 100vh; overflow: hidden; cursor: default; transition: background 0.3s; }
@@ -26,21 +26,57 @@
             width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; 
             background: transparent; position: relative; overflow: hidden; z-index: 10;
         }
-        video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; }
+        video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; pointer-events: none; }
 
         /* ÇİZİM KATMANI */
-        #drawing-canvas {
-            position: absolute; inset: 0; width: 100%; height: 100%;
-            z-index: 400; pointer-events: none;
-        }
+        #drawing-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 400; pointer-events: none; }
         #drawing-canvas.active { pointer-events: auto; cursor: crosshair; }
 
-        /* MOUSE İMLEÇLERİ (HEPSİ AYNI PEMBE) */
+        /* --- CUSTOM VIDEO CONTROLS --- */
+        .custom-controls {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            padding: 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px;
+            transition: opacity 0.4s ease; opacity: 1;
+        }
+        
+        .progress-container {
+            width: 100%; height: 5px; background: rgba(255,255,255,0.2);
+            border-radius: 5px; cursor: pointer; position: relative; transition: height 0.2s;
+        }
+        .progress-container:hover { height: 10px; }
+        .progress-filled {
+            height: 100%; background: var(--primary); width: 0%;
+            border-radius: 5px; position: relative; box-shadow: 0 0 10px var(--primary);
+        }
+        .progress-thumb {
+            position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
+            width: 12px; height: 12px; background: white; border-radius: 50%;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .progress-container:hover .progress-thumb { opacity: 1; }
+
+        .controls-row { display: flex; align-items: center; justify-content: space-between; }
+        .controls-left, .controls-right { display: flex; align-items: center; gap: 15px; }
+        
+        .ctrl-btn {
+            background: none; border: none; color: white; font-size: 18px;
+            cursor: pointer; transition: 0.2s; opacity: 0.8;
+        }
+        .ctrl-btn:hover { color: var(--primary); opacity: 1; transform: scale(1.1); }
+        .ctrl-btn.active { color: var(--primary); text-shadow: 0 0 10px var(--primary); opacity: 1; }
+
+        .time-display { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.8; }
+
+        body.user-idle .custom-controls { opacity: 0; pointer-events: none; }
+        body.user-idle { cursor: none; }
+
+        /* MOUSE & UYARILAR */
         .remote-cursor {
             position: absolute; pointer-events: none; z-index: 500;
             width: 12px; height: 12px; border-radius: 50%;
-            background: var(--primary); /* Tema Rengi */
-            box-shadow: 0 0 10px var(--primary);
+            background: var(--primary); box-shadow: 0 0 10px var(--primary);
             transform: translate(-50%, -50%); transition: left 0.1s linear, top 0.1s linear;
         }
         .cursor-name {
@@ -51,13 +87,11 @@
         .cursor-trail {
             position: absolute; pointer-events: none; z-index: 499;
             width: 8px; height: 8px; border-radius: 50%;
-            background: var(--primary); /* Tema Rengi */
-            transform: translate(-50%, -50%);
+            background: var(--primary); transform: translate(-50%, -50%);
             animation: fadeTrail 0.6s linear forwards;
         }
         @keyframes fadeTrail { 0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); } }
 
-        /* UYARILAR */
         #emergency-alert {
             position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
             background: rgba(255, 0, 0, 0.95); color: white; padding: 30px;
@@ -68,58 +102,13 @@
         #disconnect-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .reconnect-btn { margin-top: 20px; padding: 10px 20px; background: white; color: black; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        .ui-element { transition: opacity 0.5s ease, visibility 0.5s; opacity: 1; visibility: visible; }
-        .ui-hidden { opacity: 0; visibility: hidden; }
+        .ui-element { transition: opacity 0.5s ease; opacity: 1; }
+        body.user-idle .ui-element { opacity: 0; pointer-events: none; }
 
-        /* --- SAĞ ALT KONTROLLER (DÜZENLENDİ) --- */
-        .bottom-right-controls {
-            position: fixed; bottom: 30px; right: 30px; 
-            display: flex; gap: 10px; align-items: center; z-index: 9999;
-            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        body.user-idle .bottom-right-controls { transform: translateY(150%); }
-        body:not(.user-idle) .bottom-right-controls { transform: translateY(0); }
-
-        /* CHAT BUTONU (Normal) */
-        #chat-toggle { 
-            width: 55px; height: 55px; background: var(--primary); border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 22px; cursor: pointer; color: #fff; 
-            box-shadow: 0 5px 20px rgba(255, 46, 99, 0.5); transition: transform 0.2s;
-        }
-        
-        /* AYARLAR BUTONU (ŞEFFAF VE SOLA KAYDIRILMIŞ) */
-        #settings-toggle { 
-            width: 50px; height: 50px; 
-            background: transparent; /* Şeffaf */
-            border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 24px; cursor: pointer; color: rgba(255,255,255,0.7); 
-            transition: all 0.2s;
-            margin-right: 20px; /* Diğer butonlara mesafeli olsun */
-        }
-        #settings-toggle:hover { color: var(--primary); transform: rotate(90deg); }
-        
-        #chat-toggle:active, #settings-toggle:active { transform: scale(0.9); }
-        
-        .unread-dot { position: absolute; top: 0; right: 0; width: 14px; height: 14px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
-
-        /* AYARLAR MENÜSÜ */
-        #settings-menu {
-            position: absolute; bottom: 70px; right: 60px; /* Butonun hizasına göre ayarlandı */
-            background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px;
-            padding: 10px; min-width: 180px; display: none; flex-direction: column; gap: 5px;
-            backdrop-filter: blur(10px);
-        }
-        #settings-menu.open { display: flex; }
-        .settings-item {
-            padding: 10px; color: white; font-size: 13px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px;
-        }
-        .settings-item:hover { background: rgba(255,255,255,0.1); }
-
-        #chat-panel { position: fixed; bottom: 100px; right: 30px; width: 320px; height: 450px; background: var(--glass); border-radius: 16px; border: 1px solid #333; display: flex; flex-direction: column; transform: scale(0); transform-origin: bottom right; transition: transform 0.3s; z-index: 9998; }
+        /* CHAT VE DİĞERLERİ */
+        #chat-panel { position: fixed; bottom: 80px; right: 20px; width: 320px; height: 400px; background: var(--glass); border-radius: 16px; border: 1px solid #333; display: flex; flex-direction: column; transform: scale(0); transform-origin: bottom right; transition: transform 0.3s; z-index: 9998; }
         #chat-panel.open { transform: scale(1); }
+        .unread-dot { position: absolute; top: -5px; right: -5px; width: 10px; height: 10px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
 
         #user-list-container { position: fixed; top: 20px; right: 20px; z-index: 60; background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1); display: none; flex-direction: column; gap: 5px; max-width: 200px; }
         .user-list-title { font-size: 11px; color: var(--primary); font-weight: bold; margin-bottom: 5px; display: block; }
@@ -138,11 +127,11 @@
         #chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
         #chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
         .msg { padding: 8px 12px; border-radius: 8px; font-size: 13px; background: rgba(255,255,255,0.08); align-self: flex-start; max-width: 85%; }
-        .msg.mine { background: rgba(255, 46, 99, 0.2); align-self: flex-end; border-right: 2px solid var(--primary); color: #fff; }
+        .msg.mine { background: rgba(255, 128, 191, 0.2); align-self: flex-end; border-right: 2px solid var(--primary); color: #fff; }
         .msg.system { align-self: center; background: transparent; color: #666; font-size: 11px; font-style: italic; border: none; padding: 2px; }
         .chat-input-area { padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 8px; }
         #msg-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 10px; color: white; border-radius: 8px; outline: none; font-size: 13px; }
-        #send-btn { background: var(--primary); border: none; width: 40px; border-radius: 8px; color: #fff; cursor: pointer; }
+        #send-btn { background: var(--primary); border: none; width: 40px; border-radius: 8px; color: #000; cursor: pointer; }
 
         #reaction-container { position: fixed; inset: 0; pointer-events: none; z-index: 8000; overflow: hidden; }
         .floating-emoji { position: absolute; bottom: -50px; font-size: 2rem; animation: floatUp 3s linear forwards; opacity: 0.8; }
@@ -150,7 +139,6 @@
         .reaction-bar { display: flex; gap: 10px; padding: 10px; justify-content: center; border-top: 1px solid rgba(255,255,255,0.1); }
         .reaction-btn { background: rgba(255,255,255,0.1); border: none; font-size: 1.2rem; padding: 5px 10px; border-radius: 20px; cursor: pointer; transition: 0.2s; color: white; }
         .reaction-btn:hover { background: var(--primary); transform: scale(1.1); }
-        .reaction-btn.active { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
         #typing-indicator { font-size: 11px; color: var(--primary); font-style: italic; height: 15px; padding-left: 15px; margin-bottom: 5px; opacity: 0; transition: opacity 0.3s; }
         #typing-indicator.visible { opacity: 1; }
         #notification-popup { position: fixed; top: 80px; right: 20px; background: rgba(15, 15, 15, 0.95); padding: 12px 16px; border-radius: 8px; border-left: 3px solid var(--primary); min-width: 200px; transform: translateX(150%); transition: transform 0.4s; z-index: 200; pointer-events: none; }
@@ -186,11 +174,35 @@
     </div>
 
     <div id="app-wrapper">
-        <div id="video-container">
-            <video id="main-video" playsinline controls></video>
+        <div id="video-wrapper">
+            <video id="main-video" playsinline></video>
             <canvas id="drawing-canvas"></canvas>
-            <div id="custom-fullscreen-btn" class="ui-element" onclick="toggleCinemaMode()" title="Sinema Modu">
-                <i class="fas fa-columns"></i>
+            
+            <div class="custom-controls" id="custom-controls">
+                <div class="progress-container" onclick="seekVideo(event)">
+                    <div class="progress-filled" id="progress-bar">
+                        <div class="progress-thumb"></div>
+                    </div>
+                </div>
+
+                <div class="controls-row">
+                    <div class="controls-left">
+                        <button class="ctrl-btn" onclick="togglePlay()"><i class="fas fa-play" id="play-icon"></i></button>
+                        <div class="time-display"><span id="curr-time">00:00</span> / <span id="dur-time">00:00</span></div>
+                        <button class="ctrl-btn" onclick="toggleMute()"><i class="fas fa-volume-up" id="mute-icon"></i></button>
+                    </div>
+
+                    <div class="controls-right">
+                        <button class="ctrl-btn" id="btn-draw" onclick="toggleDrawing()" title="Çizim Yap"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="ctrl-btn" id="btn-mouse" onclick="toggleMouseShare()" title="Mouse Paylaş"><i class="fas fa-mouse-pointer"></i></button>
+                        <button class="ctrl-btn" id="btn-ambi" onclick="toggleAmbilight()" title="Ambilight"><i class="fas fa-lightbulb"></i></button>
+                        <button class="ctrl-btn" style="position:relative;" onclick="toggleChat()" title="Sohbet">
+                            <i class="fas fa-comment"></i>
+                            <div class="unread-dot" id="unread-dot"></div>
+                        </button>
+                        <button class="ctrl-btn" onclick="toggleFullScreen()"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -201,21 +213,6 @@
 
         <div id="file-wrapper" class="ui-element">
             <label id="file-label"><i class="fas fa-folder-open"></i> <span>Video Yükle</span><input type="file" id="local-file" accept="video/*"></label>
-        </div>
-
-        <div class="bottom-right-controls">
-            <div style="position: relative;">
-                <div id="settings-toggle" onclick="toggleSettings()"><i class="fas fa-cog"></i></div>
-                <div id="settings-menu">
-                    <div class="settings-item" onclick="toggleCinemaMode()">
-                        <i class="fas fa-columns"></i> Sinema Modu
-                    </div>
-                    <div class="settings-item" onclick="toggleAmbilight()">
-                        <i class="fas fa-lightbulb"></i> Ambilight
-                    </div>
-                </div>
-            </div>
-            <div id="chat-toggle" onclick="toggleChat()"><i class="fas fa-comment"></i><div class="unread-dot" id="unread-dot"></div></div>
         </div>
 
         <div id="chat-panel">
@@ -230,14 +227,6 @@
                 <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
                 <button class="reaction-btn" onclick="sendReaction('😲')">😲</button>
                 <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
-                
-                <button id="mouse-share-btn" class="reaction-btn" onclick="toggleMouseShare()" title="Farenizi Paylaşın">
-                    <i class="fas fa-mouse-pointer"></i>
-                </button>
-                
-                <button id="draw-btn" class="reaction-btn" onclick="toggleDrawing()" title="Çizim Yap">
-                    <i class="fas fa-pencil-alt"></i>
-                </button>
             </div>
             <div class="chat-input-area">
                 <input type="text" id="msg-input" placeholder="Mesaj..." autocomplete="off">
@@ -255,18 +244,17 @@
     <script>
         const socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
         const video = document.getElementById('main-video');
-        const appWrapper = document.getElementById('app-wrapper');
-        const videoContainer = document.getElementById('video-container');
+        const videoWrapper = document.getElementById('video-wrapper');
         const drawingCanvas = document.getElementById('drawing-canvas');
         const ctx = drawingCanvas.getContext('2d');
         const ambilightCanvas = document.getElementById('ambilight-canvas');
         const ambilightCtx = ambilightCanvas.getContext('2d');
+        const progressBar = document.getElementById('progress-bar');
         
         let myName = "";
         let myRoom = "";
         let isSyncing = false;
         let isChatOpen = false;
-        let isCinemaMode = false;
         let isMouseSharing = false;
         let isDrawing = false; 
         let isPainting = false; 
@@ -276,8 +264,6 @@
         let typingTimeout;
         let lastMouseTime = 0;
         let lastDrawPos = { x: 0, y: 0 };
-        
-        // ÇİZİMLER İÇİN HAVUZ (Fade Effect İçin)
         let drawingPaths = [];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -287,50 +273,157 @@
             if(savedRoom) document.getElementById('roomname').value = savedRoom;
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
-            
-            // Çizim Döngüsünü Başlat
             loopDrawing();
         });
 
-        // KLAVYE KISAYOLLARI
-        document.addEventListener('keydown', (e) => {
-            if (document.activeElement.tagName === "INPUT") return;
-            switch(e.code) {
-                case 'Space': e.preventDefault(); if(video.paused) video.play(); else video.pause(); break;
-                case 'KeyF': if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e=>{}); else if (document.exitFullscreen) document.exitFullscreen().catch(e=>{}); break;
-                case 'KeyC': toggleChat(); break;
-                case 'KeyT': toggleCinemaMode(); break;
+        // --- CUSTOM PLAYER ---
+        function togglePlay() {
+            if(video.paused) {
+                video.play().catch(console.error);
+                if(!isSyncing) emitSync('play', video.currentTime);
+            } else {
+                video.pause();
+                if(!isSyncing) emitSync('pause', video.currentTime);
             }
-        });
-
-        function resizeCanvas() {
-            drawingCanvas.width = videoContainer.clientWidth;
-            drawingCanvas.height = videoContainer.clientHeight;
         }
 
-        // --- AKILLI UI GİZLEME ---
+        video.addEventListener('play', () => { 
+            document.getElementById('play-icon').className = 'fas fa-pause'; 
+            resetUiTimer();
+        });
+        video.addEventListener('pause', () => { 
+            document.getElementById('play-icon').className = 'fas fa-play'; 
+            resetUiTimer();
+        });
+
+        video.addEventListener('timeupdate', () => {
+            const percent = (video.currentTime / video.duration) * 100;
+            progressBar.style.width = `${percent}%`;
+            document.getElementById('curr-time').innerText = formatTime(video.currentTime);
+            if(video.duration) document.getElementById('dur-time').innerText = formatTime(video.duration);
+        });
+
+        function seekVideo(e) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percent = clickX / rect.width;
+            const newTime = percent * video.duration;
+            video.currentTime = newTime;
+            emitSync('seek', newTime);
+        }
+
+        function toggleMute() {
+            video.muted = !video.muted;
+            const icon = document.getElementById('mute-icon');
+            icon.className = video.muted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.getElementById('app-wrapper').requestFullscreen().catch(console.error);
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function formatTime(s) {
+            const min = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            return `${min < 10 ? '0'+min : min}:${sec < 10 ? '0'+sec : sec}`;
+        }
+
+        // --- UI GİZLEME ---
         function resetUiTimer() {
-            document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
             document.body.classList.remove('user-idle');
+            document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
             document.body.style.cursor = 'default';
             clearTimeout(uiTimeout);
+            
             if (!video.paused) {
                 uiTimeout = setTimeout(() => {
-                    document.querySelectorAll('.ui-element').forEach(el => el.classList.add('ui-hidden'));
                     document.body.classList.add('user-idle');
+                    document.querySelectorAll('.ui-element').forEach(el => el.classList.add('ui-hidden'));
                     document.body.style.cursor = 'none';
                 }, 3000);
             }
         }
         document.addEventListener('mousemove', resetUiTimer);
         document.addEventListener('click', resetUiTimer);
-        document.addEventListener('touchstart', resetUiTimer);
+
+        // --- KLAVYE ---
+        document.addEventListener('keydown', (e) => {
+            if (document.activeElement.tagName === "INPUT") return;
+            switch(e.code) {
+                case 'Space': e.preventDefault(); togglePlay(); break;
+                case 'KeyF': toggleFullScreen(); break;
+                case 'KeyC': toggleChat(); break;
+            }
+        });
+
+        // --- DRAWING & CANVAS ---
+        function resizeCanvas() {
+            drawingCanvas.width = videoWrapper.clientWidth;
+            drawingCanvas.height = videoWrapper.clientHeight;
+        }
+
+        function toggleDrawing() {
+            isDrawing = !isDrawing;
+            const btn = document.getElementById('btn-draw');
+            if (isDrawing) { 
+                btn.classList.add('active'); drawingCanvas.classList.add('active'); 
+                if(isMouseSharing) toggleMouseShare(); 
+                showPopup("Mod", "Çizim Açık"); 
+            } else { 
+                btn.classList.remove('active'); drawingCanvas.classList.remove('active'); 
+            }
+        }
+
+        drawingCanvas.addEventListener('mousedown', startDraw);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', endDraw);
+        
+        function startDraw(e) {
+            if (!isDrawing) return;
+            isPainting = true;
+            const rect = drawingCanvas.getBoundingClientRect();
+            lastDrawPos = { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height };
+        }
+        function draw(e) {
+            if (!isDrawing || !isPainting) return;
+            const rect = drawingCanvas.getBoundingClientRect();
+            const currentX = (e.clientX - rect.left) / rect.width;
+            const currentY = (e.clientY - rect.top) / rect.height;
+            addPath(lastDrawPos.x, lastDrawPos.y, currentX, currentY);
+            socket.emit('draw-line', { roomId: myRoom, startX: lastDrawPos.x, startY: lastDrawPos.y, endX: currentX, endY: currentY, color: '#ff80bf' });
+            lastDrawPos = { x: currentX, y: currentY };
+        }
+        function endDraw() { isPainting = false; }
+        
+        function addPath(x1, y1, x2, y2) {
+            drawingPaths.push({ x1, y1, x2, y2, opacity: 1.0, life: 100 });
+        }
+        
+        function loopDrawing() {
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            const w = drawingCanvas.width; const h = drawingCanvas.height;
+            for (let i = 0; i < drawingPaths.length; i++) {
+                const path = drawingPaths[i];
+                ctx.beginPath(); ctx.moveTo(path.x1 * w, path.y1 * h); ctx.lineTo(path.x2 * w, path.y2 * h);
+                ctx.strokeStyle = `rgba(255, 128, 191, ${path.opacity})`; /* PEMBE */
+                ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
+                path.opacity -= 0.015; path.life--;
+            }
+            drawingPaths = drawingPaths.filter(p => p.opacity > 0);
+            requestAnimationFrame(loopDrawing);
+        }
+        socket.on('draw-line', (data) => { addPath(data.startX, data.startY, data.endX, data.endY); });
 
         // --- AMBILIGHT ---
         function toggleAmbilight() {
             isAmbilightOn = !isAmbilightOn;
-            if (isAmbilightOn) { ambilightCanvas.style.opacity = '1'; renderAmbilight(); showPopup("Ayarlar", "Ambilight Açık"); } 
-            else { ambilightCanvas.style.opacity = '0'; showPopup("Ayarlar", "Ambilight Kapalı"); }
+            const btn = document.getElementById('btn-ambi');
+            if (isAmbilightOn) { ambilightCanvas.style.opacity = '1'; btn.classList.add('active'); renderAmbilight(); } 
+            else { ambilightCanvas.style.opacity = '0'; btn.classList.remove('active'); }
         }
         function renderAmbilight() {
             if (!isAmbilightOn) return;
@@ -338,135 +431,92 @@
             requestAnimationFrame(renderAmbilight);
         }
 
-        // --- DİĞER ---
-        function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
-        function toggleDrawing() {
-            isDrawing = !isDrawing;
-            const btn = document.getElementById('draw-btn');
-            if (isDrawing) { btn.classList.add('active'); drawingCanvas.classList.add('active'); if(isMouseSharing) toggleMouseShare(); showPopup("Sistem", "Çizim Modu: Videoya çiz!"); } 
-            else { btn.classList.remove('active'); drawingCanvas.classList.remove('active'); }
-        }
-
-        // --- GELİŞMİŞ ÇİZİM (FADE OUT EFFECT) ---
-        drawingCanvas.addEventListener('mousedown', startDraw);
-        drawingCanvas.addEventListener('mousemove', draw);
-        drawingCanvas.addEventListener('mouseup', endDraw);
-        drawingCanvas.addEventListener('touchstart', (e) => startDraw(e.touches[0]));
-        drawingCanvas.addEventListener('touchmove', (e) => draw(e.touches[0]));
-        drawingCanvas.addEventListener('touchend', endDraw);
-
-        function startDraw(e) {
-            if (!isDrawing) return;
-            isPainting = true;
-            const rect = drawingCanvas.getBoundingClientRect();
-            lastDrawPos = { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height };
-        }
-
-        function draw(e) {
-            if (!isDrawing || !isPainting) return;
-            const rect = drawingCanvas.getBoundingClientRect();
-            const currentX = (e.clientX - rect.left) / rect.width;
-            const currentY = (e.clientY - rect.top) / rect.height;
-
-            // Çizgiyi havuza ekle
-            addPath(lastDrawPos.x, lastDrawPos.y, currentX, currentY);
-
-            socket.emit('draw-line', {
-                roomId: myRoom,
-                startX: lastDrawPos.x,
-                startY: lastDrawPos.y,
-                endX: currentX,
-                endY: currentY,
-                color: '#ff2e63'
-            });
-
-            lastDrawPos = { x: currentX, y: currentY };
-        }
-
-        function endDraw() { isPainting = false; }
-
-        socket.on('draw-line', (data) => {
-            addPath(data.startX, data.startY, data.endX, data.endY);
-        });
-
-        function addPath(x1, y1, x2, y2) {
-            drawingPaths.push({
-                x1, y1, x2, y2,
-                opacity: 1.0, // Başlangıç opaklığı
-                life: 100 // Ömür
-            });
-        }
-
-        function loopDrawing() {
-            // Canvas'ı temizle
-            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-            
-            const w = drawingCanvas.width;
-            const h = drawingCanvas.height;
-            const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-
-            // Çizgileri çiz
-            for (let i = 0; i < drawingPaths.length; i++) {
-                const path = drawingPaths[i];
-                ctx.beginPath();
-                ctx.moveTo(path.x1 * w, path.y1 * h);
-                ctx.lineTo(path.x2 * w, path.y2 * h);
-                // Opacity azalarak solar
-                ctx.strokeStyle = `rgba(255, 46, 99, ${path.opacity})`; 
-                ctx.lineWidth = 4;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-
-                // Ömrü azalt
-                path.opacity -= 0.015; // Solma hızı
-                path.life--;
-            }
-
-            // Ölü çizgileri diziden at
-            drawingPaths = drawingPaths.filter(p => p.opacity > 0);
-
-            requestAnimationFrame(loopDrawing);
-        }
-
         // --- MOUSE SHARE ---
         function toggleMouseShare() {
             isMouseSharing = !isMouseSharing;
-            const btn = document.getElementById('mouse-share-btn');
-            if (isMouseSharing) { btn.classList.add('active'); if(isDrawing) toggleDrawing(); showPopup("Sistem", "Fare paylaşımı AÇIK"); } 
-            else { btn.classList.remove('active'); }
+            const btn = document.getElementById('btn-mouse');
+            if (isMouseSharing) { 
+                btn.classList.add('active'); if(isDrawing) toggleDrawing(); 
+                showPopup("Sistem", "Mouse Paylaşımı Açık"); 
+            } else { btn.classList.remove('active'); }
         }
-        
-        videoContainer.addEventListener('mousemove', (e) => {
-            resetUiTimer();
+        videoWrapper.addEventListener('mousemove', (e) => {
             if (!isMouseSharing || !myName) return;
             const now = Date.now();
             if (now - lastMouseTime > 50) { 
-                const rect = videoContainer.getBoundingClientRect();
-                if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                    lastMouseTime = now;
-                    const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
-                    const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
-                    socket.emit('mouse-move', { roomId: myRoom, x: xPercent, y: yPercent });
-                }
+                const rect = videoWrapper.getBoundingClientRect();
+                const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+                const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+                socket.emit('mouse-move', { roomId: myRoom, x: xPercent, y: yPercent });
+                lastMouseTime = now;
             }
         });
-
         socket.on('mouse-update', (data) => {
             let cursor = document.getElementById(`cursor-${data.id}`);
             if (!cursor) {
                 cursor = document.createElement('div'); cursor.id = `cursor-${data.id}`; cursor.className = 'remote-cursor';
-                cursor.innerHTML = `<span class="cursor-name">${data.name}</span>`; videoContainer.appendChild(cursor);
+                cursor.innerHTML = `<span class="cursor-name">${data.name}</span>`; videoWrapper.appendChild(cursor);
             }
             cursor.style.left = data.x + '%'; cursor.style.top = data.y + '%'; cursor.style.opacity = '1';
-            createTrailDot(data.x, data.y); clearTimeout(cursor.timeout); cursor.timeout = setTimeout(() => { cursor.style.opacity = '0'; }, 2000);
+            createTrailDot(data.x, data.y);
+            clearTimeout(cursor.timeout); cursor.timeout = setTimeout(() => { cursor.style.opacity = '0'; }, 2000);
         });
+        socket.on('remove-cursor', (data) => { const cursor = document.getElementById(`cursor-${data.id}`); if(cursor) cursor.remove(); });
 
         function createTrailDot(x, y) {
             const dot = document.createElement('div'); dot.className = 'cursor-trail'; dot.style.left = x + '%'; dot.style.top = y + '%';
-            videoContainer.appendChild(dot); setTimeout(() => { dot.remove(); }, 600);
+            videoWrapper.appendChild(dot); setTimeout(() => { dot.remove(); }, 600);
+        }
+
+        // --- CORE FUNCTIONS ---
+        function joinRoom() {
+            const uName = document.getElementById('username').value.trim(); const rName = document.getElementById('roomname').value.trim();
+            if (!uName) { alert("İsim girmedin."); return; } myName = uName; myRoom = rName;
+            localStorage.setItem('yakishi_username', myName); localStorage.setItem('yakishi_roomname', myRoom);
+            socket.emit('join-room', { roomId: myRoom, userName: myName });
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('user-list-container').style.display = 'flex';
         }
         
-        socket.on('remove-cursor', (data) => { const cursor = document.getElementById(`cursor-${data.id}`); if(cursor) cursor.remove(); });
+        socket.on('update-user-list', (users) => {
+            const listDiv = document.getElementById('user-list-content'); listDiv.innerHTML = '';
+            users.forEach(user => { const div = document.createElement('div'); div.className = 'user-item'; div.textContent = user; listDiv.appendChild(div); });
+        });
+
+        document.getElementById('local-file').addEventListener('change', function(e) {
+            const file = e.target.files[0]; if (!file) return; video.src = URL.createObjectURL(file); video.load(); showPopup("Video Hazır", "Keyifli seyirler");
+        });
+
+        // SYNC HANDLERS
+        function emitSync(action, time) { socket.emit('sync-action', { roomId: myRoom, type: action, time: time }); }
+        socket.on('sync-update', (data) => {
+            isSyncing = true;
+            if (Math.abs(video.currentTime - data.time) > 0.5) video.currentTime = data.time;
+            if (data.type === 'play') video.play().catch(console.error); else if (data.type === 'pause') video.pause();
+            setTimeout(() => { isSyncing = false; }, 300);
+        });
+
+        function toggleChat() {
+            const panel = document.getElementById('chat-panel'); panel.classList.toggle('open');
+            isChatOpen = panel.classList.contains('open'); if(isChatOpen) document.getElementById('unread-dot').style.display = 'none';
+        }
+        function sendMessage() {
+            const input = document.getElementById('msg-input'); const txt = input.value.trim(); if(!txt) return;
+            addMessageToUI("Ben", txt, true); socket.emit('send-message', { roomId: myRoom, sender: myName, text: txt }); input.value = '';
+        }
+        document.getElementById('msg-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
+        socket.on('receive-message', (data) => {
+            if(data.isSystem) { showPopup("Sistem", data.text); } else {
+                addMessageToUI(data.sender, data.text, false);
+                if (!isChatOpen) { document.getElementById('unread-dot').style.display = 'block'; showPopup(data.sender, data.text); }
+            }
+        });
+        function addMessageToUI(sender, text, isMine) {
+            const area = document.getElementById('chat-messages'); const div = document.createElement('div');
+            div.className = `msg ${isMine ? 'mine' : ''}`; div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+            area.appendChild(div); area.scrollTop = area.scrollHeight;
+        }
+
         socket.on('emergency-pause', (data) => {
             video.pause();
             const alertBox = document.getElementById('emergency-alert'); document.getElementById('emergency-msg').innerText = `${data.userName} DÜŞTÜ!`;
@@ -475,6 +525,11 @@
         setInterval(() => { fetch('/ping').catch(e => {}); }, 4 * 60 * 1000);
         socket.on('disconnect', () => { document.getElementById('disconnect-overlay').style.display = 'flex'; });
         socket.on('connect', () => { document.getElementById('disconnect-overlay').style.display = 'none'; if(myName && myRoom) { socket.emit('join-room', { roomId: myRoom, userName: myName }); showPopup("Sistem", "Bağlandı"); } });
+        
+        function showPopup(title, msg) {
+            const popup = document.getElementById('notification-popup'); document.getElementById('popup-title').innerText = title; document.getElementById('popup-msg').innerText = msg;
+            popup.classList.add('show'); if (popup.timeoutId) clearTimeout(popup.timeoutId); popup.timeoutId = setTimeout(() => { popup.classList.remove('show'); }, 3000);
+        }
         function sendReaction(type) { showReactionAnim(type); socket.emit('send-reaction', { roomId: myRoom, type: type }); }
         socket.on('show-reaction', (type) => { showReactionAnim(type); });
         function showReactionAnim(type) {
@@ -489,68 +544,6 @@
             const warn = document.getElementById('duration-warning'); const msg = document.getElementById('duration-diff-msg');
             const diff = Math.round(Math.abs(data.serverDuration - data.yourDuration) / 60); msg.textContent = `Fark: Yaklaşık ${diff} dakika`; warn.style.display = 'block'; setTimeout(() => { warn.style.display = 'none'; }, 10000);
         });
-        function toggleCinemaMode() {
-            if (!isCinemaMode) {
-                appWrapper.classList.add('cinema-mode-active'); isCinemaMode = true;
-                if (screen.orientation && screen.orientation.lock) { screen.orientation.lock('landscape').catch(e => {}); }
-                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(e=>{});
-                document.getElementById('chat-panel').classList.add('open'); document.getElementById('close-chat-btn').style.display = 'none';
-            } else {
-                appWrapper.classList.remove('cinema-mode-active'); isCinemaMode = false;
-                if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
-                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-                document.getElementById('close-chat-btn').style.display = 'block';
-                if(window.innerWidth < 768) { document.getElementById('chat-panel').classList.remove('open'); }
-            }
-        }
-        function joinRoom() {
-            const uName = document.getElementById('username').value.trim(); const rName = document.getElementById('roomname').value.trim();
-            if (!uName) { alert("İsim girmedin."); return; } myName = uName; myRoom = rName;
-            localStorage.setItem('yakishi_username', myName); localStorage.setItem('yakishi_roomname', myRoom);
-            socket.emit('join-room', { roomId: myRoom, userName: myName });
-            const setup = document.getElementById('setup-screen'); setup.style.opacity = '0'; setTimeout(() => { setup.style.display = 'none'; document.getElementById('user-list-container').style.display = 'flex'; }, 500);
-        }
-        socket.on('update-user-list', (users) => {
-            const listDiv = document.getElementById('user-list-content'); listDiv.innerHTML = '';
-            users.forEach(user => { const div = document.createElement('div'); div.className = 'user-item'; div.textContent = user; listDiv.appendChild(div); });
-        });
-        document.getElementById('local-file').addEventListener('change', function(e) {
-            const file = e.target.files[0]; if (!file) return; video.src = URL.createObjectURL(file); video.load(); showPopup("Video Hazır", "İyi seyirler");
-        });
-        video.onplay = () => { resetUiTimer(); if(!isSyncing) emitSync('play', video.currentTime); };
-        video.onpause = () => { resetUiTimer(); if(!isSyncing) emitSync('pause', video.currentTime); };
-        video.onseeked = () => { if(!isSyncing) emitSync('seek', video.currentTime); };
-        function emitSync(action, time) { socket.emit('sync-action', { roomId: myRoom, type: action, time: time }); }
-        socket.on('sync-update', (data) => {
-            isSyncing = true;
-            if (Math.abs(video.currentTime - data.time) > 0.5) video.currentTime = data.time;
-            if (data.type === 'play') video.play().catch(console.error); else if (data.type === 'pause') video.pause();
-            setTimeout(() => { isSyncing = false; }, 300);
-        });
-        function toggleChat() {
-            const panel = document.getElementById('chat-panel'); panel.classList.toggle('open');
-            isChatOpen = panel.classList.contains('open'); if(isChatOpen) document.getElementById('unread-dot').style.display = 'none';
-        }
-        function sendMessage() {
-            const input = document.getElementById('msg-input'); const txt = input.value.trim(); if(!txt) return;
-            addMessageToUI("Ben", txt, true); socket.emit('send-message', { roomId: myRoom, sender: myName, text: txt }); input.value = '';
-        }
-        document.getElementById('msg-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendMessage(); });
-        socket.on('receive-message', (data) => {
-            if(data.isSystem) { showPopup("Sistem", data.text); } else {
-                addMessageToUI(data.sender, data.text, false);
-                if (!isChatOpen && !isCinemaMode) { document.getElementById('unread-dot').style.display = 'block'; showPopup(data.sender, data.text); }
-            }
-        });
-        function addMessageToUI(sender, text, isMine) {
-            const area = document.getElementById('chat-messages'); const div = document.createElement('div');
-            div.className = `msg ${isMine ? 'mine' : ''}`; div.innerHTML = `<strong>${sender}:</strong> ${text}`;
-            area.appendChild(div); area.scrollTop = area.scrollHeight;
-        }
-        function showPopup(title, msg) {
-            const popup = document.getElementById('notification-popup'); document.getElementById('popup-title').innerText = title; document.getElementById('popup-msg').innerText = msg;
-            popup.classList.add('show'); if (popup.timeoutId) clearTimeout(popup.timeoutId); popup.timeoutId = setTimeout(() => { popup.classList.remove('show'); }, 3000);
-        }
     </script>
 </body>
 </html>
