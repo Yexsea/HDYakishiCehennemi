@@ -14,7 +14,7 @@
             --dark: #0a0a0a; 
             --glass: rgba(20, 20, 20, 0.95); 
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         
         body { background: var(--dark); color: #e0e0e0; height: 100vh; overflow: hidden; cursor: default; user-select: none; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
@@ -34,8 +34,7 @@
         #ambilight-canvas {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 100%; height: 100%; z-index: 0;
-            filter: blur(80px) brightness(1.2) saturate(1.5); /* Daha belirgin olsun diye artırdım */
-            opacity: 0; transition: opacity 1s ease;
+            filter: blur(80px) brightness(0.9) saturate(1.2); opacity: 0; transition: opacity 1s ease;
         }
 
         /* --- VİDEO ALANI --- */
@@ -49,52 +48,40 @@
         #drawing-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 400; pointer-events: none; touch-action: none; }
         #drawing-canvas.active { pointer-events: auto; cursor: crosshair; }
 
-        /* --- ÖZEL KONTROL ÇUBUĞU --- */
+        /* --- ÖZEL KONTROL ÇUBUĞU (MOBİL FIX) --- */
         .custom-controls {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
-            padding: 15px 20px; z-index: 9999;
+            padding: 20px; z-index: 15000; /* Çok yüksek Z-Index */
             display: none; /* Login ekranında gizli */
-            flex-direction: column; gap: 8px;
+            flex-direction: column; gap: 10px;
             transition: opacity 0.3s ease; opacity: 1;
+            pointer-events: auto; /* Tıklamaları yakala */
         }
         
-        /* Progress Bar (İNCE VERSİYON) */
+        /* Progress Bar */
         .progress-container {
-            width: 100%; height: 4px; /* Çok daha ince */
+            width: 100%; height: 10px; /* Mobilde kolay tutulması için */
             background: rgba(255,255,255,0.2);
-            border-radius: 2px; cursor: pointer; position: relative;
-            transition: height 0.1s ease;
-            touch-action: none; /* Mobilde sürükleme için */
-            margin-bottom: 5px;
+            border-radius: 5px; cursor: pointer; position: relative;
+            touch-action: none; 
         }
-        /* Mouse üzerine gelince veya tutunca hafif kalınlaşsın */
-        .progress-container:hover, .progress-container.active { height: 6px; }
-        
         .progress-filled {
             height: 100%; background: var(--reddish); width: 0%;
-            border-radius: 2px; position: relative; 
-            box-shadow: 0 0 10px var(--reddish);
+            border-radius: 5px; position: relative; box-shadow: 0 0 10px var(--reddish);
         }
-        
-        /* Top (Thumb) (KÜÇÜK VE ZARİF) */
         .progress-thumb {
-            position: absolute; right: -5px; top: 50%; transform: translateY(-50%) scale(0); /* Başta gizli */
-            width: 10px; height: 10px; background: white; border-radius: 50%;
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
-            transition: transform 0.1s ease;
-        }
-        /* Hoverlayınca veya sürüklerken top büyüsün */
-        .progress-container:hover .progress-thumb, .progress-container.active .progress-thumb { 
-            transform: translateY(-50%) scale(1); 
+            position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
+            width: 16px; height: 16px; background: white; border-radius: 50%;
+            opacity: 1; 
         }
 
-        /* Buton Grupları */
+        /* Butonlar */
         .controls-row { display: flex; align-items: center; justify-content: space-between; }
         .controls-left, .controls-right { display: flex; align-items: center; gap: 15px; }
         
         .ctrl-btn {
-            background: none; border: none; color: white; font-size: 20px;
+            background: none; border: none; color: white; font-size: 22px; /* Mobilde rahat basılsın */
             cursor: pointer; transition: 0.2s; opacity: 0.9; position: relative;
             display: flex; align-items: center; justify-content: center; padding: 5px;
         }
@@ -104,18 +91,21 @@
         /* Ses Slider */
         .volume-wrapper { display: flex; align-items: center; position: relative; }
         .volume-slider-container {
-            width: 0; overflow: hidden; transition: width 0.3s ease;
+            width: 80px; /* Mobilde hep açık kalsın */
             display: flex; align-items: center; margin-right: 5px;
         }
-        .volume-wrapper:hover .volume-slider-container { width: 110px; }
-        @media (max-width: 768px) { .volume-slider-container { width: 80px !important; } }
+        /* Masaüstünde hover ile açılır */
+        @media (min-width: 769px) {
+            .volume-slider-container { width: 0; overflow: hidden; transition: width 0.3s ease; }
+            .volume-wrapper:hover .volume-slider-container { width: 110px; }
+        }
         
         input[type=range].volume-slider {
             -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.3);
             border-radius: 2px; outline: none;
         }
         input[type=range].volume-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 12px; height: 12px; background: var(--primary);
+            -webkit-appearance: none; width: 14px; height: 14px; background: var(--primary);
             border-radius: 50%; cursor: pointer;
         }
         #volume-text { font-size: 11px; color: var(--primary); width: 40px; text-align: right; margin-right: 5px; font-weight: bold; }
@@ -127,13 +117,13 @@
             position: absolute; bottom: 70px; right: 20px; 
             background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px;
             padding: 10px; min-width: 160px; display: none; flex-direction: column; gap: 5px;
-            backdrop-filter: blur(10px); z-index: 10000;
+            backdrop-filter: blur(10px); z-index: 16000;
         }
         #settings-menu.open { display: flex; }
         .settings-item { padding: 10px; color: white; font-size: 13px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
         .settings-item:hover { background: rgba(255,255,255,0.1); }
 
-        /* IDLE MODE */
+        /* IDLE MODE (Mouse durunca gizle) */
         body.user-idle .custom-controls { opacity: 0; pointer-events: none; }
         body.user-idle .ui-element { opacity: 0; pointer-events: none; }
         body.user-idle { cursor: none; }
@@ -145,7 +135,7 @@
             display: flex; flex-direction: column; 
             transform-origin: bottom right;
             transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease; 
-            z-index: 9998; 
+            z-index: 14000; /* Kontrollerin altında kalsın */
         }
         #chat-panel:not(.open) { transform: scale(0); opacity: 0; pointer-events: none; }
         #chat-panel.open { transform: scale(1); opacity: 1; pointer-events: auto; }
@@ -203,7 +193,7 @@
         .remote-cursor { position: absolute; pointer-events: none; z-index: 9990; width: 12px; height: 12px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary); transform: translate(-50%, -50%); transition: left 0.1s linear, top 0.1s linear; }
         .cursor-name { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; white-space: nowrap; }
         
-        /* İZ (TRAIL) - EN ÜSTTE */
+        /* İZ (TRAIL) */
         .cursor-trail { position: absolute; pointer-events: none; z-index: 9989; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); transform: translate(-50%, -50%); animation: fadeTrail 0.6s linear forwards; }
         @keyframes fadeTrail { 0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); } }
 
@@ -293,11 +283,11 @@
             <div id="chat-messages"></div>
             <div id="typing-indicator"></div>
             <div class="reaction-bar">
-                <button class="reaction-btn" onclick="sendReaction('❤️')">❤️</button>
-                <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
-                <button class="reaction-btn" onclick="sendReaction('😲')">😲</button>
-                <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
-                <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+                <button class="reaction-btn" onclick="triggerComboCheck('❤️')">❤️</button>
+                <button class="reaction-btn" onclick="triggerComboCheck('😂')">😂</button>
+                <button class="reaction-btn" onclick="triggerComboCheck('😲')">😲</button>
+                <button class="reaction-btn" onclick="triggerComboCheck('👏')">👏</button>
+                <button class="reaction-btn" onclick="triggerComboCheck('🔥')">🔥</button>
             </div>
             <div class="chat-input-area">
                 <input type="text" id="msg-input" placeholder="Mesaj..." autocomplete="off">
@@ -328,8 +318,6 @@
         let myName = "", myRoom = "", isSyncing = false, isChatOpen = false;
         let isMouseSharing = false, isDrawing = false, isPainting = false, isAmbilightOn = false, isCinemaMode = false;
         let uiTimeout, typingTimeout, lastMouseTime = 0, lastDrawPos = { x: 0, y: 0 }, drawingPaths = [];
-        
-        // Scrubbing (Sürükleme) Değişkeni
         let isScrubbing = false;
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -342,16 +330,48 @@
             loopDrawing();
         });
 
-        // --- SCRUBBING LOGIC (Sürükle-Bırak Sarma) ---
+        // --- COMBO LOGIC ---
+        // Kullanıcının bastığı son tuşları takip et
+        const targetCombo = ['❤️', '😂', '😲', '👏', '🔥'];
+        let currentCombo = [];
+
+        function triggerComboCheck(type) {
+            // Önce normal reaksiyonu gönder
+            sendReaction(type);
+            
+            // Listeye ekle
+            currentCombo.push(type);
+            
+            // Eğer liste 5'ten uzunsa baştan kes
+            if (currentCombo.length > 5) {
+                currentCombo.shift();
+            }
+
+            // Kontrol et: Dizi hedef diziye eşit mi?
+            if (JSON.stringify(currentCombo) === JSON.stringify(targetCombo)) {
+                sendSpecialCombo();
+                currentCombo = []; // Sıfırla
+            }
+        }
+
+        function sendSpecialCombo() {
+            socket.emit('send-reaction', { roomId: myRoom, type: '🕊️' });
+            showReactionAnim('🕊️');
+            
+            setTimeout(() => {
+                socket.emit('send-reaction', { roomId: myRoom, type: '🤷' });
+                showReactionAnim('🤷');
+            }, 200);
+        }
+
+        // --- SCRUBBING ---
         progressBarContainer.addEventListener('mousedown', startScrub);
         progressBarContainer.addEventListener('touchstart', startScrub, {passive: false});
 
         function startScrub(e) {
             isScrubbing = true;
-            progressBarContainer.classList.add('active'); // CSS ile kalınlaştır
-            handleScrub(e); // Tıklanan yere hemen git
-            
-            // Global eventleri ekle (ekran dışına çıkarsa diye)
+            progressBarContainer.classList.add('active');
+            handleScrub(e);
             document.addEventListener('mousemove', handleScrub);
             document.addEventListener('touchmove', handleScrub, {passive: false});
             document.addEventListener('mouseup', endScrub);
@@ -361,18 +381,11 @@
         function handleScrub(e) {
             if (!isScrubbing) return;
             if(e.type === 'touchmove') e.preventDefault();
-
             const rect = progressBarContainer.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             let percent = (clientX - rect.left) / rect.width;
-            
-            // Sınırla (0 ile 1 arası)
             percent = Math.max(0, Math.min(1, percent));
-            
-            // UI Güncelle
             progressBarFilled.style.width = `${percent * 100}%`;
-            
-            // Videoyu anlık güncelle (Sync gönderme, sadece yerel)
             if(video.duration) {
                 video.currentTime = percent * video.duration;
                 document.getElementById('curr-time').innerText = formatTime(video.currentTime);
@@ -383,11 +396,7 @@
             if (!isScrubbing) return;
             isScrubbing = false;
             progressBarContainer.classList.remove('active');
-            
-            // Son konumu sync et
             emitSync('seek', video.currentTime);
-            
-            // Listenerları temizle
             document.removeEventListener('mousemove', handleScrub);
             document.removeEventListener('touchmove', handleScrub);
             document.removeEventListener('mouseup', endScrub);
@@ -476,10 +485,12 @@
             }
         });
 
-        // --- PLAY/PAUSE ---
+        // --- PLAY/PAUSE (MOBİL FIX) ---
         videoWrapper.addEventListener('click', (e) => {
             if (e.target.closest('.custom-controls') || e.target.closest('#settings-menu') || isDrawing) return;
+            // Mobilde sadece UI'ı göster/gizle
             resetUiTimer();
+            // Masaüstünde oynat/durdur
             if(window.innerWidth > 768) togglePlay(); 
         });
         videoWrapper.addEventListener('touchstart', () => { resetUiTimer(); });
@@ -493,15 +504,22 @@
 
         video.addEventListener('play', () => { document.getElementById('play-icon').className = 'fas fa-pause'; resetUiTimer(); });
         video.addEventListener('pause', () => { document.getElementById('play-icon').className = 'fas fa-play'; resetUiTimer(); });
-        
-        // Timeupdate sadece sürükleme (scrubbing) yoksa çalışsın
         video.addEventListener('timeupdate', () => {
-            if(isScrubbing) return; 
+            if(isScrubbing) return;
             const percent = (video.currentTime / video.duration) * 100;
             progressBarFilled.style.width = `${percent}%`;
             document.getElementById('curr-time').innerText = formatTime(video.currentTime);
             if(video.duration) document.getElementById('dur-time').innerText = formatTime(video.duration);
         });
+
+        function seekVideo(e) {
+            const rect = progressBarContainer.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percent = clickX / rect.width;
+            const newTime = percent * video.duration;
+            video.currentTime = newTime;
+            emitSync('seek', newTime);
+        }
 
         function toggleFullScreen() {
             if (!document.fullscreenElement) document.getElementById('app-wrapper').requestFullscreen().catch(console.error);
@@ -512,22 +530,23 @@
             return `${min < 10 ? '0'+min : min}:${sec < 10 ? '0'+sec : sec}`;
         }
 
-        // --- UI ---
+        // --- UI GİZLEME (MOBİL UYUMLU) ---
         function resetUiTimer() {
             document.body.classList.remove('user-idle');
             document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
             document.body.style.cursor = 'default';
             clearTimeout(uiTimeout);
-            if (!video.paused) {
-                uiTimeout = setTimeout(() => {
+            
+            uiTimeout = setTimeout(() => {
+                if (!video.paused) {
                     document.body.classList.add('user-idle');
                     document.querySelectorAll('.ui-element').forEach(el => el.classList.add('ui-hidden'));
                     document.body.style.cursor = 'none';
-                }, 3000);
-            }
+                }
+            }, 3000);
         }
         document.addEventListener('mousemove', resetUiTimer);
-        document.addEventListener('touchstart', resetUiTimer);
+        document.addEventListener('touchstart', resetUiTimer); // MOBİL İÇİN
 
         // --- DRAWING ---
         function resizeCanvas() { drawingCanvas.width = videoWrapper.clientWidth; drawingCanvas.height = videoWrapper.clientHeight; }
@@ -568,7 +587,7 @@
         }
         socket.on('draw-line', (data) => { addPath(data.startX, data.startY, data.endX, data.endY); });
 
-        // --- AMBILIGHT (FIXED) ---
+        // --- AMBILIGHT ---
         function toggleAmbilight() {
             isAmbilightOn = !isAmbilightOn; const btn = document.getElementById('btn-ambi');
             if (isAmbilightOn) { ambilightCanvas.style.opacity = '1'; btn.classList.add('active'); renderAmbilight(); showPopup("Ayarlar", "Ambilight Açık"); } 
