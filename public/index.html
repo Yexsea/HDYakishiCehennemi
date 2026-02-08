@@ -7,56 +7,65 @@
     <link rel="icon" type="image/png" href="simgecik.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* --- TEMA AYARLARI --- */
-        :root { 
-            --primary: #ff80bf;       /* Tatlı Pembe */
-            --reddish: #ff0040;       /* Kırmızımsı */
-            --dark: #0a0a0a; 
-            --glass: rgba(20, 20, 20, 0.95); 
-        }
+        /* --- TEMA --- */
+        :root { --primary: #ff80bf; --reddish: #ff0040; --dark: #0a0a0a; --glass: rgba(20, 20, 20, 0.95); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         
         body { background: var(--dark); color: #e0e0e0; height: 100vh; overflow: hidden; cursor: default; user-select: none; }
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-
-        #app-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+        
+        #app-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; transition: all 0.3s ease; }
 
         /* SÜRÜKLE BIRAK */
         #drop-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 20000; display: none; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; color: var(--primary); border: 5px dashed var(--primary); pointer-events: none; }
         #drop-overlay.active { display: flex; }
 
-        /* ARKA PLAN */
-        #ambilight-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; z-index: 0; filter: blur(80px) brightness(0.9) saturate(1.2); opacity: 0; transition: opacity 1s ease; }
+        /* AMBILIGHT */
+        #ambilight-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; z-index: 0; filter: blur(90px) brightness(1.2) saturate(1.5); opacity: 0; transition: opacity 1s ease; pointer-events: none; }
 
-        /* VİDEO ALANI */
-        #video-wrapper { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: transparent; position: relative; overflow: hidden; z-index: 10; }
+        /* VIDEO ALANI */
+        #video-wrapper { 
+            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; 
+            background: transparent; position: relative; overflow: hidden; z-index: 10;
+            transition: width 0.3s ease; /* Split screen için animasyon */
+        }
         video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; }
 
         /* ÇİZİM KATMANI */
         #drawing-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 400; pointer-events: none; touch-action: none; }
-        #drawing-canvas.active { pointer-events: auto; cursor: crosshair; }
-
-        /* ========================================= */
-        /* --- DESKTOP KONTROLLERİ (MASAÜSTÜ) --- */
-        /* ========================================= */
+        
+        /* --- DESKTOP KONTROLLERİ --- */
         .desktop-controls {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
-            padding: 15px 20px; z-index: 9999;
-            display: flex; flex-direction: column; gap: 8px;
+            padding: 10px 20px 20px 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 5px;
             transition: opacity 0.3s ease; opacity: 1;
         }
+
+        /* İNCE PROGRESS BAR (SÜRÜKLEME DESTEKLİ) */
+        .progress-container {
+            width: 100%; height: 4px; 
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px; cursor: pointer; position: relative;
+            transition: height 0.1s ease; margin-bottom: 5px;
+        }
+        .progress-container:hover { height: 6px; } 
         
-        .progress-container { width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; cursor: pointer; position: relative; transition: height 0.1s ease; }
-        .progress-container:hover { height: 6px; }
-        .progress-filled { height: 100%; background: var(--reddish); width: 0%; border-radius: 2px; position: relative; box-shadow: 0 0 10px var(--reddish); }
-        .progress-thumb { position: absolute; right: -4px; top: 50%; transform: translateY(-50%) scale(0); width: 10px; height: 10px; background: white; border-radius: 50%; transition: transform 0.1s ease; }
-        .progress-container:hover .progress-thumb { transform: translateY(-50%) scale(1); }
+        .progress-filled { height: 100%; background: var(--reddish); width: 0%; border-radius: 2px; position: relative; box-shadow: 0 0 10px var(--reddish); pointer-events: none; }
+        
+        .progress-thumb {
+            position: absolute; right: -5px; top: 50%; transform: translateY(-50%) scale(0); 
+            width: 10px; height: 10px; background: white; border-radius: 50%;
+            transition: transform 0.1s ease;
+        }
+        .progress-container:hover .progress-thumb, .progress-container.active .progress-thumb { transform: translateY(-50%) scale(1); }
 
         .controls-row { display: flex; align-items: center; justify-content: space-between; }
         .controls-left, .controls-right { display: flex; align-items: center; gap: 15px; }
-        .ctrl-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; transition: 0.2s; opacity: 0.9; padding: 5px; }
-        .ctrl-btn:hover { color: var(--primary); transform: scale(1.1); }
+        
+        .ctrl-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; transition: 0.2s; opacity: 0.9; position: relative; padding: 5px; }
+        .ctrl-btn:hover { color: var(--primary); opacity: 1; transform: scale(1.1); }
+        .ctrl-btn.active { color: var(--primary); text-shadow: 0 0 10px var(--primary); opacity: 1; }
 
         .volume-wrapper { display: flex; align-items: center; position: relative; }
         .volume-slider-container { width: 0; overflow: hidden; transition: width 0.3s ease; display: flex; align-items: center; margin-right: 5px; }
@@ -66,69 +75,59 @@
         #volume-text { font-size: 11px; color: var(--primary); width: 35px; text-align: right; margin-right: 5px; font-weight: bold; }
         .time-display { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.8; margin-left: 5px; }
 
-        /* ========================================= */
-        /* --- MOBİL KONTROLLERİ (TELEFON) --- */
-        /* ========================================= */
-        #mobile-overlay {
-            position: absolute; inset: 0; z-index: 10000;
-            display: none; /* Desktopta gizli */
-            flex-direction: column; justify-content: center; align-items: center;
-            background: rgba(0,0,0,0.4); /* Hafif karartma */
-            transition: opacity 0.3s ease; opacity: 0; pointer-events: none;
+        /* --- MOBİL KONTROLLERİ --- */
+        .mobile-controls {
+            position: fixed; bottom: 20px; width: 100%; 
+            display: none; justify-content: space-between; padding: 0 20px; z-index: 10000;
+            pointer-events: none;
         }
-        #mobile-overlay.visible { opacity: 1; pointer-events: auto; }
+        .mob-btn {
+            width: 50px; height: 50px; background: rgba(0,0,0,0.6); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: white; border: 1px solid rgba(255,255,255,0.2);
+            pointer-events: auto; backdrop-filter: blur(5px);
+        }
+        .mob-btn:active { background: var(--primary); color: black; }
 
-        /* Ortadaki Dev Play Butonu */
-        .mob-center-btn {
-            font-size: 50px; color: rgba(255,255,255,0.8);
-            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
-            transition: transform 0.2s;
-        }
-        .mob-center-btn:active { transform: scale(0.9); color: var(--primary); }
-
-        /* Sağ Alttaki Butonlar */
-        .mob-bottom-right {
-            position: absolute; bottom: 30px; right: 30px;
-            display: flex; gap: 20px;
-        }
-        .mob-action-btn {
-            width: 45px; height: 45px; border-radius: 50%;
-            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
-            color: white; font-size: 18px; display: flex; align-items: center; justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-        .mob-action-btn:active { background: var(--primary); border-color: var(--primary); }
-
-        /* Çift Tıklama Animasyonları (Geri/İleri) */
-        .seek-anim {
-            position: absolute; top: 50%; transform: translateY(-50%);
-            font-size: 24px; color: white; font-weight: bold;
-            display: flex; flex-direction: column; align-items: center;
-            opacity: 0; pointer-events: none; z-index: 10001;
-            text-shadow: 0 0 10px black;
-        }
-        .seek-anim.left { left: 15%; }
-        .seek-anim.right { right: 15%; }
-        
-        .seek-anim.animate { animation: fadePop 0.6s linear; }
-        @keyframes fadePop {
-            0% { opacity: 0; transform: translateY(-50%) scale(0.8); }
-            30% { opacity: 1; transform: translateY(-50%) scale(1.2); }
-            100% { opacity: 0; transform: translateY(-50%) scale(1); }
-        }
-        .seek-icon { font-size: 30px; margin-bottom: 5px; color: var(--primary); }
-
-        /* MEDIA QUERY */
+        /* --- MEDIA QUERIES (MOBİL) --- */
         @media (max-width: 768px) {
-            .desktop-controls { display: none !important; } 
-            #mobile-overlay { display: flex; }
-            #chat-panel { width: 90%; right: 5%; bottom: 80px; height: 350px; }
-            #btn-mouse { display: none; }
-            /* Çizim yapılamasın ama görülsün */
-            #drawing-canvas { pointer-events: none !important; }
+            .desktop-controls { display: none !important; }
+            .mobile-controls { display: flex !important; }
+            #ambilight-canvas { display: none; }
+            
+            /* Varsayılan Mobil Chat (Floating) */
+            #chat-panel { width: 85%; right: 7.5%; bottom: 80px; height: 350px; }
         }
 
-        /* ORTAK UI */
+        /* --- MOBİL SPLIT SCREEN (SİNEMA MODU) --- */
+        /* Bu class body'e eklendiğinde devreye girer */
+        body.mobile-cinema-active #app-wrapper {
+            flex-direction: row; /* Yan yana diz */
+        }
+        
+        body.mobile-cinema-active #video-wrapper {
+            width: 65%; /* Video Solda */
+            height: 100vh;
+        }
+        
+        body.mobile-cinema-active #chat-panel {
+            width: 35%; /* Chat Sağda */
+            height: 100vh !important;
+            top: 0; right: 0; bottom: 0;
+            border-radius: 0;
+            border-left: 1px solid #333;
+            transform: none !important;
+            opacity: 1 !important;
+            display: flex !important;
+            background: rgba(10, 10, 10, 0.95);
+            z-index: 20000;
+        }
+        
+        body.mobile-cinema-active .mobile-controls {
+            width: 65%; /* Butonlar sadece video kısmında kalsın */
+        }
+
+        /* Ortak UI */
         #settings-menu { position: absolute; bottom: 60px; right: 20px; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; padding: 10px; min-width: 160px; display: none; flex-direction: column; gap: 5px; backdrop-filter: blur(10px); z-index: 10000; }
         #settings-menu.open { display: flex; }
         .settings-item { padding: 10px; color: white; font-size: 13px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
@@ -137,8 +136,12 @@
         #chat-panel { position: fixed; bottom: 80px; right: 20px; width: 320px; height: 400px; background: var(--glass); border-radius: 16px; border: 1px solid #333; display: flex; flex-direction: column; transform-origin: bottom right; transition: transform 0.5s ease, opacity 0.5s ease; z-index: 9998; }
         #chat-panel:not(.open) { transform: scale(0); opacity: 0; pointer-events: none; }
         #chat-panel.open { transform: scale(1); opacity: 1; pointer-events: auto; }
-        /* Mobil Idle: Chat biraz aşağı kaysın */
-        body.user-idle #chat-panel.open { transform: translateY(0); } 
+        
+        @media (min-width: 769px) {
+            body.user-idle .desktop-controls { opacity: 0; pointer-events: none; }
+            body.user-idle { cursor: none; }
+            body.user-idle #chat-panel.open { transform: translateY(60px); opacity: 0.9; }
+        }
 
         #file-wrapper { position: fixed; top: 20px; left: 20px; z-index: 10005; }
         #file-label { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 8px; cursor: pointer; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 10px; backdrop-filter: blur(4px); transition: 0.3s; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1); }
@@ -213,9 +216,11 @@
                     <div class="settings-item" onclick="toggleCinemaMode()"><i class="fas fa-columns"></i> Sinema Modu</div>
                     <div class="settings-item" onclick="toggleAmbilight()"><i class="fas fa-lightbulb"></i> Ambilight</div>
                 </div>
-                <div class="progress-container" onclick="seekVideo(event)">
+                
+                <div class="progress-container" id="progress-container">
                     <div class="progress-filled" id="progress-bar"><div class="progress-thumb"></div></div>
                 </div>
+
                 <div class="controls-row">
                     <div class="controls-left">
                         <button class="ctrl-btn" onclick="togglePlay()"><i class="fas fa-play" id="play-icon"></i></button>
@@ -240,19 +245,10 @@
                 </div>
             </div>
 
-            <div id="mobile-overlay">
-                <div class="seek-anim left"><i class="fas fa-backward seek-icon"></i>5s</div>
-                <div class="seek-anim right"><i class="fas fa-forward seek-icon"></i>5s</div>
-                
-                <div class="mob-center-btn" onclick="togglePlay()">
-                    <i class="fas fa-play" id="mob-play-icon"></i>
-                </div>
-
-                <div class="mob-bottom-right">
-                    <div class="mob-action-btn" onclick="toggleCinemaMode()"><i class="fas fa-columns"></i></div>
-                    <div class="mob-action-btn" style="position:relative;" onclick="toggleChat()">
-                        <i class="fas fa-comment"></i><div class="unread-dot" id="mob-unread-dot"></div>
-                    </div>
+            <div class="mobile-controls">
+                <div class="mob-btn" onclick="toggleCinemaMode()"><i class="fas fa-columns"></i></div>
+                <div class="mob-btn" style="position:relative;" onclick="toggleChat()">
+                    <i class="fas fa-comment"></i><div class="unread-dot" id="mob-unread-dot"></div>
                 </div>
             </div>
 
@@ -301,19 +297,28 @@
         const ctx = drawingCanvas.getContext('2d');
         const ambilightCanvas = document.getElementById('ambilight-canvas');
         const ambilightCtx = ambilightCanvas.getContext('2d');
+        const progressBarContainer = document.getElementById('progress-container');
         const progressBarFilled = document.getElementById('progress-bar');
         const dropOverlay = document.getElementById('drop-overlay');
-        const mobileOverlay = document.getElementById('mobile-overlay');
+        const appWrapper = document.getElementById('app-wrapper'); // Wrapper'ı seç
         
         let audioCtx, gainNode, source;
         let myName = "", myRoom = "", isSyncing = false, isChatOpen = false;
         let isMouseSharing = false, isDrawing = false, isPainting = false, isAmbilightOn = false, isCinemaMode = false;
         let uiTimeout, lastMouseTime = 0, lastDrawPos = { x: 0, y: 0 }, drawingPaths = [];
+        let isScrubbing = false; 
         
-        // MOBİL KONTROLÜ
+        // Cihaz Kontrolü
         const isMobile = window.innerWidth <= 768;
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Eğer mobilse native controls aç
+            if(isMobile) {
+                video.setAttribute('controls', 'true');
+            } else {
+                video.removeAttribute('controls');
+            }
+
             const savedName = localStorage.getItem('yakishi_username');
             const savedRoom = localStorage.getItem('yakishi_roomname');
             if(savedName) document.getElementById('username').value = savedName;
@@ -322,6 +327,63 @@
             window.addEventListener('resize', resizeCanvas);
             loopDrawing();
         });
+
+        // --- SCRUBBING (SÜRÜKLEME) MANTIK ---
+        if (!isMobile) {
+            progressBarContainer.addEventListener('mousedown', startScrub);
+            
+            function startScrub(e) {
+                isScrubbing = true;
+                progressBarContainer.classList.add('active'); // CSS ile kalınlaşmasını istemiyorsan bunu kapa
+                handleScrub(e);
+                document.addEventListener('mousemove', handleScrub);
+                document.addEventListener('mouseup', endScrub);
+            }
+
+            function handleScrub(e) {
+                if (!isScrubbing) return;
+                const rect = progressBarContainer.getBoundingClientRect();
+                let percent = (e.clientX - rect.left) / rect.width;
+                percent = Math.max(0, Math.min(1, percent));
+                
+                progressBarFilled.style.width = `${percent * 100}%`;
+                
+                if (video.duration) {
+                    video.currentTime = percent * video.duration;
+                    document.getElementById('curr-time').innerText = formatTime(video.currentTime);
+                }
+            }
+
+            function endScrub() {
+                if (!isScrubbing) return;
+                isScrubbing = false;
+                progressBarContainer.classList.remove('active');
+                emitSync('seek', video.currentTime);
+                document.removeEventListener('mousemove', handleScrub);
+                document.removeEventListener('mouseup', endScrub);
+            }
+        }
+
+        // --- AMBILIGHT (KESİN ÇÖZÜM) ---
+        function toggleAmbilight() {
+            if(isMobile) return; 
+            isAmbilightOn = !isAmbilightOn; const btn = document.getElementById('settings-toggle');
+            if (isAmbilightOn) { 
+                ambilightCanvas.style.opacity = '1'; 
+                loopAmbilight(); // DÖNGÜYÜ BAŞLAT
+                showPopup("Ayarlar", "Ambilight Açık"); 
+            } 
+            else { ambilightCanvas.style.opacity = '0'; showPopup("Ayarlar", "Ambilight Kapalı"); }
+        }
+        
+        function loopAmbilight() {
+            if (!isAmbilightOn) return; 
+            // Video oynasa da oynamasa da her framede çiz
+            if (video.readyState >= 2) { 
+                ambilightCtx.drawImage(video, 0, 0, ambilightCanvas.width, ambilightCanvas.height); 
+            }
+            requestAnimationFrame(loopAmbilight);
+        }
 
         // --- COMBO LOGIC ---
         const targetCombo = ['❤️', '😂', '😲', '👏', '🔥'];
@@ -336,33 +398,57 @@
             setTimeout(() => { socket.emit('send-reaction', { roomId: myRoom, type: '🤷' }); showReactionAnim('🤷'); }, 300);
         }
 
-        // --- INTRO ---
+        // --- INTRO & SKIP ---
+        let introSkipped = false;
+
         function startIntroSequence() {
             const uName = document.getElementById('username').value.trim();
             const rName = document.getElementById('roomname').value.trim();
             if (!uName) { alert("İsim girmedin."); return; }
+            
             myName = uName; myRoom = rName;
-            localStorage.setItem('yakishi_username', myName); localStorage.setItem('yakishi_roomname', myRoom);
+            localStorage.setItem('yakishi_username', myName); 
+            localStorage.setItem('yakishi_roomname', myRoom);
+            
             document.getElementById('setup-screen').style.display = 'none';
             const introScreen = document.getElementById('intro-screen');
             const introVideo = document.getElementById('intro-video');
             introScreen.style.display = 'flex';
-            introVideo.play().catch(e => finishIntro());
-            introVideo.onended = finishIntro; introVideo.onerror = finishIntro;
+            
+            // INTRO SKIP LISTENERLARI
+            document.addEventListener('keydown', skipIntro);
+            introScreen.addEventListener('click', skipIntro);
+            introScreen.addEventListener('touchstart', skipIntro);
+
+            introVideo.play().catch(e => skipIntro());
+            introVideo.onended = skipIntro;
+            introVideo.onerror = skipIntro;
         }
-        function finishIntro() {
-            document.getElementById('intro-screen').style.display = 'none';
+
+        function skipIntro() {
+            if(introSkipped) return;
+            introSkipped = true;
+            
+            // Listenerları temizle
+            document.removeEventListener('keydown', skipIntro);
+            const introScreen = document.getElementById('intro-screen');
+            introScreen.removeEventListener('click', skipIntro);
+            introScreen.removeEventListener('touchstart', skipIntro);
+            
+            introScreen.style.display = 'none';
+            document.getElementById('intro-video').pause();
+            
             joinRoom();
         }
+
         function joinRoom() {
             document.getElementById('app-wrapper').style.display = 'flex';
             socket.emit('join-room', { roomId: myRoom, userName: myName });
             document.getElementById('user-list-container').style.display = 'flex';
-            // Custom controls sadece desktopta
             if(!isMobile) document.getElementById('custom-controls').style.display = 'flex'; 
         }
 
-        // --- AUDIO BOOST (Desktop) ---
+        // --- AUDIO BOOST (Desktop Only) ---
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -415,109 +501,25 @@
             }
         });
 
-        // --- GESTURE LOGIC (MOBİL) ---
-        let lastTap = 0;
-        let tapTimeout;
-
-        videoWrapper.addEventListener('touchstart', (e) => {
-            if(!isMobile) return; // Sadece mobilde çalışsın
-            const now = Date.now();
-            const touchX = e.touches[0].clientX;
-            const width = window.innerWidth;
-
-            if (now - lastTap < 300) {
-                // ÇİFT TIKLAMA
-                clearTimeout(tapTimeout);
-                if (touchX < width * 0.35) {
-                    // Sol Taraf (Geri)
-                    seekRelative(-5);
-                    showSeekAnim('left');
-                } else if (touchX > width * 0.65) {
-                    // Sağ Taraf (İleri)
-                    seekRelative(5);
-                    showSeekAnim('right');
-                } else {
-                    // Orta (Tam ekran aç/kapa opsiyonel)
-                    toggleFullScreen();
-                }
-            } else {
-                // TEK TIKLAMA BEKLEME
-                tapTimeout = setTimeout(() => {
-                    // Tek tıklama: Arayüzü aç/kapa
-                    resetMobileUi();
-                }, 300);
-            }
-            lastTap = now;
-        });
-
-        function seekRelative(seconds) {
-            video.currentTime += seconds;
-            emitSync('seek', video.currentTime);
-        }
-
-        function showSeekAnim(side) {
-            const anim = document.querySelector(`.seek-anim.${side}`);
-            anim.classList.remove('animate');
-            void anim.offsetWidth; // Trigger reflow
-            anim.classList.add('animate');
-        }
-
-        function resetMobileUi() {
-            if (!mobileOverlay.classList.contains('visible')) {
-                mobileOverlay.classList.add('visible');
-                // 3 saniye sonra gizle
-                setTimeout(() => { if(!video.paused) mobileOverlay.classList.remove('visible'); }, 3000);
-            } else {
-                mobileOverlay.classList.remove('visible');
-            }
-        }
-
-        // --- PLAY/PAUSE GENEL ---
-        // Desktop için click
+        // --- PLAY/PAUSE (CLICK FIX) ---
         videoWrapper.addEventListener('click', (e) => {
-            if(isMobile) return; // Mobili touchstart hallediyor
+            if(isMobile) return; 
             if (e.target.closest('.desktop-controls') || e.target.closest('#settings-menu') || isDrawing) return;
             togglePlay();
         });
 
         function togglePlay() {
-            if(!isMobile && !audioCtx) initAudioContext();
-            if(!isMobile && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-            
-            if(video.paused) { 
-                video.play().catch(console.error); 
-                if(!isSyncing) emitSync('play', video.currentTime); 
-            } else { 
-                video.pause(); 
-                if(!isSyncing) emitSync('pause', video.currentTime); 
-            }
+            if(isMobile) return; 
+            if(!audioCtx) initAudioContext();
+            if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            if(video.paused) { video.play().catch(console.error); if(!isSyncing) emitSync('play', video.currentTime); } 
+            else { video.pause(); if(!isSyncing) emitSync('pause', video.currentTime); }
         }
 
-        video.addEventListener('play', () => { 
-            if(!isMobile) document.getElementById('play-icon').className = 'fas fa-pause'; 
-            else document.getElementById('mob-play-icon').className = 'fas fa-pause';
-            // UI Update
-            if(!isMobile) {
-               document.body.classList.remove('user-idle');
-               clearTimeout(uiTimeout);
-               uiTimeout = setTimeout(() => document.body.classList.add('user-idle'), 3000);
-            } else {
-               setTimeout(() => mobileOverlay.classList.remove('visible'), 3000);
-            }
-        });
-        
-        video.addEventListener('pause', () => { 
-            if(!isMobile) {
-                document.getElementById('play-icon').className = 'fas fa-play'; 
-                document.body.classList.remove('user-idle'); // Pause olunca bar geri gelsin
-            } else {
-                document.getElementById('mob-play-icon').className = 'fas fa-play';
-                mobileOverlay.classList.add('visible'); // Pause olunca menü gelsin
-            }
-        });
-
+        video.addEventListener('play', () => { if(!isMobile) document.getElementById('play-icon').className = 'fas fa-pause'; resetUiTimer(); });
+        video.addEventListener('pause', () => { if(!isMobile) document.getElementById('play-icon').className = 'fas fa-play'; resetUiTimer(); });
         video.addEventListener('timeupdate', () => {
-            if(!isMobile) {
+            if(!isMobile && !isScrubbing) {
                 const percent = (video.currentTime / video.duration) * 100;
                 progressBarFilled.style.width = `${percent}%`;
                 document.getElementById('curr-time').innerText = formatTime(video.currentTime);
@@ -525,10 +527,10 @@
             }
         });
 
-        // --- SEEK (Desktop) ---
+        // --- SEEK (Desktop Click) ---
         function seekVideo(e) {
             if(isMobile) return;
-            const rect = e.currentTarget.getBoundingClientRect();
+            const rect = progressBarContainer.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const percent = clickX / rect.width;
             const newTime = percent * video.duration;
@@ -545,23 +547,43 @@
             return `${min < 10 ? '0'+min : min}:${sec < 10 ? '0'+sec : sec}`;
         }
 
-        // --- DESKTOP UI GİZLEME ---
-        if(!isMobile) {
-            document.addEventListener('mousemove', () => {
-                document.body.classList.remove('user-idle');
-                clearTimeout(uiTimeout);
-                if (!video.paused) uiTimeout = setTimeout(() => document.body.classList.add('user-idle'), 3000);
-            });
+        // --- UI GİZLEME (Desktop) ---
+        function resetUiTimer() {
+            if(isMobile) return;
+            document.body.classList.remove('user-idle');
+            document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
+            document.body.style.cursor = 'default';
+            clearTimeout(uiTimeout);
+            if (!video.paused) {
+                uiTimeout = setTimeout(() => {
+                    document.body.classList.add('user-idle');
+                    document.querySelectorAll('.ui-element').forEach(el => el.classList.add('ui-hidden'));
+                    document.body.style.cursor = 'none';
+                }, 3000);
+            }
         }
+        document.addEventListener('mousemove', resetUiTimer);
 
-        // --- DRAWING ---
+        // --- DRAWING (Desktop Only) ---
         function resizeCanvas() { drawingCanvas.width = videoWrapper.clientWidth; drawingCanvas.height = videoWrapper.clientHeight; }
+        
         function toggleDrawing() {
             if(isMobile) return;
             isDrawing = !isDrawing; const btn = document.getElementById('btn-draw');
-            if (isDrawing) { btn.classList.add('active'); drawingCanvas.classList.add('active'); if(isMouseSharing) toggleMouseShare(); showPopup("Mod", "Çizim Açık"); } 
-            else { btn.classList.remove('active'); drawingCanvas.classList.remove('active'); }
+            
+            if (isDrawing) { 
+                btn.classList.add('active'); 
+                drawingCanvas.classList.add('active'); 
+                if(isMouseSharing) toggleMouseShare(); 
+                showPopup("Mod", "Çizim Modu: AÇIK"); 
+            } 
+            else { 
+                btn.classList.remove('active'); 
+                drawingCanvas.classList.remove('active'); 
+                showPopup("Mod", "Çizim Modu: KAPALI");
+            }
         }
+        
         drawingCanvas.addEventListener('mousedown', (e) => startDraw(e));
         drawingCanvas.addEventListener('mousemove', (e) => draw(e));
         drawingCanvas.addEventListener('mouseup', endDraw);
@@ -591,29 +613,19 @@
         }
         socket.on('draw-line', (data) => { addPath(data.startX, data.startY, data.endX, data.endY); });
 
-        // --- AMBILIGHT (KESİN ÇÖZÜM) ---
-        function toggleAmbilight() {
-            if(isMobile) return; // Mobilde kapalı
-            isAmbilightOn = !isAmbilightOn; const btn = document.getElementById('settings-toggle'); // Menüden açılıyor
-            if (isAmbilightOn) { 
-                ambilightCanvas.style.opacity = '1'; 
-                renderAmbilight(); 
-                showPopup("Ayarlar", "Ambilight Açık"); 
-            } 
-            else { ambilightCanvas.style.opacity = '0'; showPopup("Ayarlar", "Ambilight Kapalı"); }
-        }
-        function renderAmbilight() {
-            if (!isAmbilightOn) return;
-            if (video.readyState >= 2) { ambilightCtx.drawImage(video, 0, 0, ambilightCanvas.width, ambilightCanvas.height); }
-            requestAnimationFrame(renderAmbilight);
-        }
-
         // --- MOUSE SHARE ---
         function toggleMouseShare() {
             if(isMobile) return;
             isMouseSharing = !isMouseSharing; const btn = document.getElementById('btn-mouse');
-            if (isMouseSharing) { btn.classList.add('active'); if(isDrawing) toggleDrawing(); showPopup("Sistem", "Mouse Paylaşımı Açık"); } 
-            else { btn.classList.remove('active'); }
+            if (isMouseSharing) { 
+                btn.classList.add('active'); 
+                if(isDrawing) toggleDrawing(); 
+                showPopup("Sistem", "Mouse Takibi: AÇIK"); 
+            } 
+            else { 
+                btn.classList.remove('active'); 
+                showPopup("Sistem", "Mouse Takibi: KAPALI"); 
+            }
         }
         videoWrapper.addEventListener('mousemove', (e) => {
             if (!isMouseSharing || !myName || isMobile) return;
@@ -643,17 +655,36 @@
         }
 
         function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
+        
+        // --- SİNEMA MODU (SPLIT SCREEN FIX) ---
         function toggleCinemaMode() {
             isCinemaMode = !isCinemaMode;
             if (isCinemaMode) { 
+                // Mobil için class ekle (Split Screen aktif et)
+                document.body.classList.add('mobile-cinema-active');
+                
                 video.style.objectFit = 'cover'; 
                 showPopup("Mod", "Sinema Modu"); 
+                
                 if(isMobile) {
+                    // Mobildeyken chat panelini aç ki sağ tarafta gözüksün
                     const panel = document.getElementById('chat-panel');
-                    if(panel.classList.contains('open')) panel.classList.remove('open');
+                    panel.classList.add('open');
                 }
             } 
-            else { video.style.objectFit = 'contain'; showPopup("Mod", "Normal Mod"); }
+            else { 
+                // Class'ı kaldır
+                document.body.classList.remove('mobile-cinema-active');
+                
+                video.style.objectFit = 'contain'; 
+                showPopup("Mod", "Normal Mod"); 
+                
+                if(isMobile) {
+                    // Normal moda dönünce chati kapat (Floating moda dön)
+                    const panel = document.getElementById('chat-panel');
+                    panel.classList.remove('open');
+                }
+            }
         }
         
         socket.on('update-user-list', (users) => {
