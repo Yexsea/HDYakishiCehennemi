@@ -6,7 +6,7 @@
     <title>HDYakishi Cehennemi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* TEMA: TATLI PEMBE */
+        /* TEMA RENKLERİ */
         :root { --primary: #ff80bf; --reddish: #ff0040; --dark: #0a0a0a; --glass: rgba(20, 20, 20, 0.95); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
@@ -24,7 +24,7 @@
         }
         #drop-overlay.active { display: flex; }
 
-        /* AMBILIGHT */
+        /* AMBILIGHT KATMANI */
         #ambilight-canvas {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 100%; height: 100%; z-index: 0;
@@ -35,7 +35,7 @@
             width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; 
             background: transparent; position: relative; overflow: hidden; z-index: 10;
         }
-        video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; } /* Click event JS ile yönetilecek */
+        video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; }
 
         /* ÇİZİM KATMANI */
         #drawing-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 400; pointer-events: none; }
@@ -44,45 +44,44 @@
         /* --- CUSTOM VIDEO CONTROLS --- */
         .custom-controls {
             position: absolute; bottom: 0; left: 0; width: 100%;
-            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
             padding: 20px; z-index: 9999;
-            display: none; /* Başlangıçta gizli (Login ekranı için) */
+            display: none; /* Başlangıçta gizli */
             flex-direction: column; gap: 10px;
             transition: opacity 0.4s ease, transform 0.4s ease; opacity: 1;
         }
         
         /* Progress Bar (KIRMIZIMSI) */
         .progress-container {
-            width: 100%; height: 5px; background: rgba(255,255,255,0.2);
+            width: 100%; height: 6px; background: rgba(255,255,255,0.2);
             border-radius: 5px; cursor: pointer; position: relative; transition: height 0.2s;
         }
         .progress-container:hover { height: 10px; }
         .progress-filled {
-            height: 100%; background: var(--reddish); /* Kırmızımsı */
+            height: 100%; background: var(--reddish); /* İstediğin Kırmızı */
             width: 0%; border-radius: 5px; position: relative; 
             box-shadow: 0 0 10px var(--reddish);
         }
         .progress-thumb {
             position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
-            width: 12px; height: 12px; background: white; border-radius: 50%;
+            width: 14px; height: 14px; background: white; border-radius: 50%;
             opacity: 0; transition: opacity 0.2s;
         }
         .progress-container:hover .progress-thumb { opacity: 1; }
 
+        /* Butonlar */
         .controls-row { display: flex; align-items: center; justify-content: space-between; }
-        .controls-left, .controls-right { display: flex; align-items: center; gap: 15px; }
+        .controls-left, .controls-right { display: flex; align-items: center; gap: 12px; }
         
         .ctrl-btn {
             background: none; border: none; color: white; font-size: 18px;
-            cursor: pointer; transition: 0.2s; opacity: 0.8;
+            cursor: pointer; transition: 0.2s; opacity: 0.8; position: relative;
         }
         .ctrl-btn:hover { color: var(--primary); opacity: 1; transform: scale(1.1); }
         .ctrl-btn.active { color: var(--primary); text-shadow: 0 0 10px var(--primary); opacity: 1; }
 
-        /* SES KONTROLÜ (SLIDER) */
-        .volume-wrapper {
-            display: flex; align-items: center; position: relative;
-        }
+        /* SES SLIDER (Üzerine gelince açılır) */
+        .volume-wrapper { display: flex; align-items: center; position: relative; }
         .volume-slider-container {
             width: 0; overflow: hidden; transition: width 0.3s ease;
             display: flex; align-items: center; margin-right: 5px;
@@ -98,31 +97,50 @@
             border-radius: 50%; cursor: pointer;
         }
 
-        .time-display { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.8; }
+        .time-display { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.8; margin-left: 5px; }
 
-        /* IDLE MODE (Hareketsiz kalınca) */
+        /* AYARLAR MENÜSÜ (Kontrol çubuğundan açılan) */
+        #settings-menu {
+            position: absolute; bottom: 60px; right: 20px; 
+            background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px;
+            padding: 10px; min-width: 160px; display: none; flex-direction: column; gap: 5px;
+            backdrop-filter: blur(10px); z-index: 10000;
+        }
+        #settings-menu.open { display: flex; }
+        .settings-item { padding: 10px; color: white; font-size: 13px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
+        .settings-item:hover { background: rgba(255,255,255,0.1); }
+
+        /* IDLE MODE (Mouse durunca gizle) */
         body.user-idle .custom-controls { opacity: 0; pointer-events: none; }
         body.user-idle { cursor: none; }
 
-        /* CHAT DOCKING (Süzülme Efekti) */
+        /* CHAT DOCKING (Süzülme ve Küçülme) */
         #chat-panel { 
-            position: fixed; bottom: 100px; right: 30px; width: 320px; height: 450px; 
+            position: fixed; bottom: 90px; right: 20px; width: 320px; height: 400px; 
             background: var(--glass); border-radius: 16px; border: 1px solid #333; 
             display: flex; flex-direction: column; 
             transform-origin: bottom right;
-            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease; 
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease; 
             z-index: 9998; 
         }
-        #chat-panel.open { transform: scale(1); }
-
-        /* Idle modunda chat aşağı süzülür */
-        body.user-idle #chat-panel {
-            transform: translateY(80px) scale(0.9) !important; /* Aşağı in ve küçül */
-            opacity: 0.8; /* Hafif şeffaf */
-            pointer-events: none; /* Tıklanmasın */
+        /* Gizliyken (Kapalıyken) */
+        #chat-panel:not(.open) {
+            transform: scale(0); opacity: 0; pointer-events: none;
+        }
+        /* Açıkken */
+        #chat-panel.open { 
+            transform: scale(1); opacity: 1; pointer-events: auto;
         }
 
-        /* --- DİĞER CSS --- */
+        /* Mouse durduğunda (Idle) ve Chat Açıksa -> KÖŞEYE PARK ET */
+        body.user-idle #chat-panel.open {
+            transform: translateY(70px) scale(0.85) !important; /* Aşağı kaydır ve küçült */
+            opacity: 0.7; /* Şeffaflaştır */
+        }
+
+        /* DİĞER CSS */
+        .unread-dot { position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
+
         .remote-cursor {
             position: absolute; pointer-events: none; z-index: 500;
             width: 12px; height: 12px; border-radius: 50%;
@@ -154,41 +172,6 @@
 
         .ui-element { transition: opacity 0.5s ease; opacity: 1; }
         body.user-idle .ui-element { opacity: 0; pointer-events: none; }
-
-        /* Sağ Alt Butonlar */
-        .bottom-right-controls {
-            position: fixed; bottom: 30px; right: 30px; 
-            display: flex; gap: 10px; align-items: center; z-index: 9999;
-            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        body.user-idle .bottom-right-controls { transform: translateY(150%); }
-        body:not(.user-idle) .bottom-right-controls { transform: translateY(0); }
-
-        #chat-toggle { 
-            width: 55px; height: 55px; background: var(--primary); border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 22px; cursor: pointer; color: #fff; 
-            box-shadow: 0 5px 20px rgba(255, 128, 191, 0.5); transition: transform 0.2s;
-        }
-        #settings-toggle { 
-            width: 50px; height: 50px; background: transparent; 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            font-size: 24px; cursor: pointer; color: rgba(255,255,255,0.7); 
-            transition: all 0.2s; margin-right: 20px;
-        }
-        #settings-toggle:hover { color: var(--primary); transform: rotate(90deg); }
-        #chat-toggle:active, #settings-toggle:active { transform: scale(0.9); }
-        .unread-dot { position: absolute; top: 0; right: 0; width: 14px; height: 14px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
-
-        #settings-menu {
-            position: absolute; bottom: 70px; right: 60px; 
-            background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px;
-            padding: 10px; min-width: 180px; display: none; flex-direction: column; gap: 5px;
-            backdrop-filter: blur(10px);
-        }
-        #settings-menu.open { display: flex; }
-        .settings-item { padding: 10px; color: white; font-size: 13px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
-        .settings-item:hover { background: rgba(255,255,255,0.1); }
 
         #user-list-container { position: fixed; top: 20px; right: 20px; z-index: 60; background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1); display: none; flex-direction: column; gap: 5px; max-width: 200px; }
         .user-list-title { font-size: 11px; color: var(--primary); font-weight: bold; margin-bottom: 5px; display: block; }
@@ -256,11 +239,21 @@
     </div>
 
     <div id="app-wrapper">
-        <div id="video-wrapper">
+        <div id="video-container">
             <video id="main-video" playsinline></video>
             <canvas id="drawing-canvas"></canvas>
             
             <div class="custom-controls" id="custom-controls">
+                
+                <div id="settings-menu">
+                    <div class="settings-item" onclick="toggleCinemaMode()">
+                        <i class="fas fa-columns"></i> Sinema Modu
+                    </div>
+                    <div class="settings-item" onclick="toggleAmbilight()">
+                        <i class="fas fa-lightbulb"></i> Ambilight
+                    </div>
+                </div>
+
                 <div class="progress-container" onclick="seekVideo(event)">
                     <div class="progress-filled" id="progress-bar">
                         <div class="progress-thumb"></div>
@@ -273,7 +266,7 @@
                         
                         <div class="volume-wrapper">
                             <div class="volume-slider-container">
-                                <input type="range" min="0" max="1" step="0.05" value="1" class="volume-slider" oninput="setVolume(this.value)">
+                                <input type="range" min="0" max="2" step="0.05" value="1" class="volume-slider" oninput="setVolume(this.value)">
                             </div>
                             <button class="ctrl-btn" onclick="toggleMute()"><i class="fas fa-volume-up" id="mute-icon"></i></button>
                         </div>
@@ -284,7 +277,14 @@
                     <div class="controls-right">
                         <button class="ctrl-btn" id="btn-draw" onclick="toggleDrawing()" title="Çizim Yap"><i class="fas fa-pencil-alt"></i></button>
                         <button class="ctrl-btn" id="btn-mouse" onclick="toggleMouseShare()" title="Mouse Paylaş"><i class="fas fa-mouse-pointer"></i></button>
-                        <button class="ctrl-btn" id="btn-ambi" onclick="toggleAmbilight()" title="Ambilight"><i class="fas fa-lightbulb"></i></button>
+                        
+                        <button class="ctrl-btn" id="settings-toggle" onclick="toggleSettings()"><i class="fas fa-cog"></i></button>
+                        
+                        <button class="ctrl-btn" style="position:relative;" onclick="toggleChat()" title="Sohbet">
+                            <i class="fas fa-comment"></i>
+                            <div class="unread-dot" id="unread-dot"></div>
+                        </button>
+                        
                         <button class="ctrl-btn" onclick="toggleFullScreen()"><i class="fas fa-expand"></i></button>
                     </div>
                 </div>
@@ -300,21 +300,6 @@
             <label id="file-label"><i class="fas fa-folder-open"></i> <span>Video Yükle</span><input type="file" id="local-file" accept="video/*"></label>
         </div>
 
-        <div class="bottom-right-controls">
-            <div style="position: relative;">
-                <div id="settings-toggle" onclick="toggleSettings()"><i class="fas fa-cog"></i></div>
-                <div id="settings-menu">
-                    <div class="settings-item" onclick="toggleCinemaMode()">
-                        <i class="fas fa-columns"></i> Sinema Modu
-                    </div>
-                    <div class="settings-item" onclick="toggleAmbilight()">
-                        <i class="fas fa-lightbulb"></i> Ambilight
-                    </div>
-                </div>
-            </div>
-            <div id="chat-toggle" onclick="toggleChat()"><i class="fas fa-comment"></i><div class="unread-dot" id="unread-dot"></div></div>
-        </div>
-
         <div id="chat-panel">
             <div id="chat-header">
                 <span>Sohbet</span>
@@ -327,12 +312,6 @@
                 <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
                 <button class="reaction-btn" onclick="sendReaction('😲')">😲</button>
                 <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
-                <button id="mouse-share-btn" class="reaction-btn" onclick="toggleMouseShare()" title="Farenizi Paylaşın">
-                    <i class="fas fa-mouse-pointer"></i>
-                </button>
-                <button id="draw-btn" class="reaction-btn" onclick="toggleDrawing()" title="Çizim Yap">
-                    <i class="fas fa-pencil-alt"></i>
-                </button>
             </div>
             <div class="chat-input-area">
                 <input type="text" id="msg-input" placeholder="Mesaj..." autocomplete="off">
@@ -350,7 +329,7 @@
     <script>
         const socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
         const video = document.getElementById('main-video');
-        const videoWrapper = document.getElementById('video-wrapper');
+        const videoContainer = document.getElementById('video-container');
         const drawingCanvas = document.getElementById('drawing-canvas');
         const ctx = drawingCanvas.getContext('2d');
         const ambilightCanvas = document.getElementById('ambilight-canvas');
@@ -366,6 +345,7 @@
         let isDrawing = false; 
         let isPainting = false; 
         let isAmbilightOn = false;
+        let isCinemaMode = false;
         
         let uiTimeout;
         let typingTimeout;
@@ -386,23 +366,9 @@
         // --- DRAG & DROP ---
         document.body.addEventListener('dragover', (e) => { e.preventDefault(); dropOverlay.classList.add('active'); });
         document.body.addEventListener('dragleave', (e) => { 
-            // Sadece gerçekten pencereden çıkarsa gizle
             if (e.clientX === 0 || e.clientY === 0) dropOverlay.classList.remove('active'); 
         });
         document.body.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropOverlay.classList.remove('active');
-            if(e.dataTransfer.files.length > 0) {
-                const file = e.dataTransfer.files[0];
-                if(file.type.startsWith('video/')) {
-                    video.src = URL.createObjectURL(file);
-                    video.load();
-                    showPopup("Video Yüklendi", "Dosya bırakıldı.");
-                }
-            }
-        });
-        // Overlay'e bırakırsa da çalışsın
-        dropOverlay.addEventListener('drop', (e) => {
             e.preventDefault();
             dropOverlay.classList.remove('active');
             if(e.dataTransfer.files.length > 0) {
@@ -420,23 +386,23 @@
             if (document.activeElement.tagName === "INPUT") return;
             switch(e.code) {
                 case 'Space': e.preventDefault(); togglePlay(); break;
-                case 'ArrowRight': e.preventDefault(); video.currentTime += 5; break;
-                case 'ArrowLeft': e.preventDefault(); video.currentTime -= 5; break;
-                case 'ArrowUp': e.preventDefault(); video.volume = Math.min(1, video.volume + 0.1); break;
-                case 'ArrowDown': e.preventDefault(); video.volume = Math.max(0, video.volume - 0.1); break;
+                case 'ArrowRight': e.preventDefault(); video.currentTime += 5; emitSync('seek', video.currentTime); break;
+                case 'ArrowLeft': e.preventDefault(); video.currentTime -= 5; emitSync('seek', video.currentTime); break;
+                case 'ArrowUp': e.preventDefault(); setVolume(Math.min(2, video.volume + 0.1)); break;
+                case 'ArrowDown': e.preventDefault(); setVolume(Math.max(0, video.volume - 0.1)); break;
                 case 'KeyF': toggleFullScreen(); break;
                 case 'KeyC': toggleChat(); break;
             }
         });
 
-        // --- CLICK TO PLAY/PAUSE (EKRANA DOKUNMA) ---
-        videoWrapper.addEventListener('click', (e) => {
-            // Eğer kontrollerin üzerine veya çizim yaparken tıklanmadıysa
-            if (e.target.closest('.custom-controls') || isDrawing) return;
+        // --- CLICK TO PLAY/PAUSE ---
+        videoContainer.addEventListener('click', (e) => {
+            // Kontroller veya menülere tıklanırsa videoyu durdurma
+            if (e.target.closest('.custom-controls') || e.target.closest('#settings-menu') || isDrawing) return;
             togglePlay();
         });
 
-        // --- CUSTOM PLAYER ---
+        // --- CUSTOM PLAYER MANTIKLARI ---
         function togglePlay() {
             if(video.paused) {
                 video.play().catch(console.error);
@@ -472,11 +438,12 @@
             emitSync('seek', newTime);
         }
 
-        // SES VE SES ÇUBUĞU
+        // SES
         function setVolume(val) {
-            video.volume = val;
-            video.muted = (val === 0);
+            video.volume = Math.min(val, 1); // HTML Media Element max volume 1'dir, ama biz sliderı 2 yaptık
+            // GainNode ile %200 ses yapılabilir ama şimdilik standart tutuyoruz
             updateMuteIcon();
+            document.querySelector('.volume-slider').value = val;
         }
         function toggleMute() {
             video.muted = !video.muted;
@@ -484,7 +451,9 @@
         }
         function updateMuteIcon() {
             const icon = document.getElementById('mute-icon');
-            icon.className = video.muted || video.volume === 0 ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+            if (video.muted || video.volume === 0) icon.className = 'fas fa-volume-mute';
+            else if (video.volume < 0.5) icon.className = 'fas fa-volume-down';
+            else icon.className = 'fas fa-volume-up';
         }
 
         function toggleFullScreen() {
@@ -501,7 +470,7 @@
             return `${min < 10 ? '0'+min : min}:${sec < 10 ? '0'+sec : sec}`;
         }
 
-        // --- UI GİZLEME & CHAT DOCKING ---
+        // --- UI GİZLEME ---
         function resetUiTimer() {
             document.body.classList.remove('user-idle');
             document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
@@ -521,8 +490,8 @@
 
         // --- DRAWING ---
         function resizeCanvas() {
-            drawingCanvas.width = videoWrapper.clientWidth;
-            drawingCanvas.height = videoWrapper.clientHeight;
+            drawingCanvas.width = videoContainer.clientWidth;
+            drawingCanvas.height = videoContainer.clientHeight;
         }
         function toggleDrawing() {
             isDrawing = !isDrawing;
@@ -555,19 +524,14 @@
             lastDrawPos = { x: currentX, y: currentY };
         }
         function endDraw() { isPainting = false; }
-        
-        function addPath(x1, y1, x2, y2) {
-            drawingPaths.push({ x1, y1, x2, y2, opacity: 1.0, life: 100 });
-        }
-        
+        function addPath(x1, y1, x2, y2) { drawingPaths.push({ x1, y1, x2, y2, opacity: 1.0, life: 100 }); }
         function loopDrawing() {
             ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
             const w = drawingCanvas.width; const h = drawingCanvas.height;
             for (let i = 0; i < drawingPaths.length; i++) {
                 const path = drawingPaths[i];
                 ctx.beginPath(); ctx.moveTo(path.x1 * w, path.y1 * h); ctx.lineTo(path.x2 * w, path.y2 * h);
-                ctx.strokeStyle = `rgba(255, 128, 191, ${path.opacity})`; 
-                ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
+                ctx.strokeStyle = `rgba(255, 128, 191, ${path.opacity})`; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
                 path.opacity -= 0.015; path.life--;
             }
             drawingPaths = drawingPaths.filter(p => p.opacity > 0);
@@ -597,11 +561,11 @@
                 showPopup("Sistem", "Mouse Paylaşımı Açık"); 
             } else { btn.classList.remove('active'); }
         }
-        videoWrapper.addEventListener('mousemove', (e) => {
+        videoContainer.addEventListener('mousemove', (e) => {
             if (!isMouseSharing || !myName) return;
             const now = Date.now();
             if (now - lastMouseTime > 50) { 
-                const rect = videoWrapper.getBoundingClientRect();
+                const rect = videoContainer.getBoundingClientRect();
                 const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
                 const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
                 socket.emit('mouse-move', { roomId: myRoom, x: xPercent, y: yPercent });
@@ -612,20 +576,32 @@
             let cursor = document.getElementById(`cursor-${data.id}`);
             if (!cursor) {
                 cursor = document.createElement('div'); cursor.id = `cursor-${data.id}`; cursor.className = 'remote-cursor';
-                cursor.innerHTML = `<span class="cursor-name">${data.name}</span>`; videoWrapper.appendChild(cursor);
+                cursor.innerHTML = `<span class="cursor-name">${data.name}</span>`; videoContainer.appendChild(cursor);
             }
             cursor.style.left = data.x + '%'; cursor.style.top = data.y + '%'; cursor.style.opacity = '1';
             createTrailDot(data.x, data.y);
             clearTimeout(cursor.timeout); cursor.timeout = setTimeout(() => { cursor.style.opacity = '0'; }, 2000);
         });
-        socket.on('remove-cursor', (data) => { const cursor = document.getElementById(`cursor-${data.id}`); if(cursor) cursor.remove(); });
-
         function createTrailDot(x, y) {
             const dot = document.createElement('div'); dot.className = 'cursor-trail'; dot.style.left = x + '%'; dot.style.top = y + '%';
-            videoWrapper.appendChild(dot); setTimeout(() => { dot.remove(); }, 600);
+            videoContainer.appendChild(dot); setTimeout(() => { dot.remove(); }, 600);
         }
+        socket.on('remove-cursor', (data) => { const cursor = document.getElementById(`cursor-${data.id}`); if(cursor) cursor.remove(); });
 
         // --- CORE FUNCTIONS ---
+        function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
+        function toggleCinemaMode() {
+            isCinemaMode = !isCinemaMode;
+            // Sinema modu için basit bir full width ayarı, şimdilik sadece görsel olarak ekliyoruz
+            if(isCinemaMode) {
+                video.style.objectFit = 'cover';
+                showPopup("Mod", "Sinema Modu (Doldur)");
+            } else {
+                video.style.objectFit = 'contain';
+                showPopup("Mod", "Normal Mod (Sığdır)");
+            }
+        }
+
         function joinRoom() {
             const uName = document.getElementById('username').value.trim(); const rName = document.getElementById('roomname').value.trim();
             if (!uName) { alert("İsim girmedin."); return; } myName = uName; myRoom = rName;
@@ -633,8 +609,7 @@
             socket.emit('join-room', { roomId: myRoom, userName: myName });
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('user-list-container').style.display = 'flex';
-            // Video Kontrollerini Göster
-            document.getElementById('custom-controls').style.display = 'flex';
+            document.getElementById('custom-controls').style.display = 'flex'; // Kontrolleri göster
         }
         
         socket.on('update-user-list', (users) => {
@@ -702,20 +677,6 @@
             const warn = document.getElementById('duration-warning'); const msg = document.getElementById('duration-diff-msg');
             const diff = Math.round(Math.abs(data.serverDuration - data.yourDuration) / 60); msg.textContent = `Fark: Yaklaşık ${diff} dakika`; warn.style.display = 'block'; setTimeout(() => { warn.style.display = 'none'; }, 10000);
         });
-        function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
-        function toggleCinemaMode() {
-            if (!isCinemaMode) {
-                document.getElementById('app-wrapper').classList.add('cinema-mode-active'); isCinemaMode = true;
-                if (screen.orientation && screen.orientation.lock) { screen.orientation.lock('landscape').catch(e => {}); }
-                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(e=>{});
-                document.getElementById('chat-panel').classList.add('open'); document.getElementById('close-chat-btn').style.display = 'none';
-            } else {
-                document.getElementById('app-wrapper').classList.remove('cinema-mode-active'); isCinemaMode = false;
-                if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
-                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-                document.getElementById('close-chat-btn').style.display = 'block';
-            }
-        }
     </script>
 </body>
 </html>
