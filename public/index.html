@@ -7,169 +7,140 @@
     <link rel="icon" type="image/png" href="simgecik.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* --- TEMA AYARLARI --- */
-        :root { 
-            --primary: #ff80bf;       /* Tatlı Pembe */
-            --reddish: #ff0040;       /* Progress Bar Kırmızısı */
-            --dark: #0a0a0a; 
-            --glass: rgba(20, 20, 20, 0.95); 
-        }
+        /* --- TEMA --- */
+        :root { --primary: #ff80bf; --reddish: #ff0040; --dark: #0a0a0a; --glass: rgba(20, 20, 20, 0.95); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         
         body { background: var(--dark); color: #e0e0e0; height: 100vh; overflow: hidden; cursor: default; user-select: none; }
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-
+        
         #app-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
 
-        /* --- SÜRÜKLE BIRAK KATMANI --- */
-        #drop-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 20000;
-            display: none; align-items: center; justify-content: center;
-            font-size: 3rem; font-weight: bold; color: var(--primary);
-            border: 5px dashed var(--primary); pointer-events: none;
-        }
+        /* SÜRÜKLE BIRAK KATMANI (Sadece Desktop'ta anlamlı ama kalsın) */
+        #drop-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 20000; display: none; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; color: var(--primary); border: 5px dashed var(--primary); pointer-events: none; }
         #drop-overlay.active { display: flex; }
 
-        /* --- ARKA PLAN EFEKTLERİ --- */
-        #ambilight-canvas {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 100%; height: 100%; z-index: 0;
-            filter: blur(80px) brightness(0.9) saturate(1.2); opacity: 0; transition: opacity 1s ease;
-        }
+        /* AMBILIGHT */
+        #ambilight-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; z-index: 0; filter: blur(80px) brightness(0.9) saturate(1.2); opacity: 0; transition: opacity 1s ease; pointer-events: none; }
 
-        /* --- VİDEO ALANI --- */
-        #video-wrapper { 
-            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; 
-            background: transparent; position: relative; overflow: hidden; z-index: 10;
-        }
+        /* VIDEO WRAPPER */
+        #video-wrapper { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: transparent; position: relative; overflow: hidden; z-index: 10; }
         video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; }
 
-        /* ÇİZİM KATMANI */
-        #drawing-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 400; pointer-events: none; touch-action: none; }
-        #drawing-canvas.active { pointer-events: auto; cursor: crosshair; }
+        /* ÇİZİM KATMANI (Video Üstü) */
+        #drawing-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 400; pointer-events: none; }
+        /* Desktop'ta çizim aktifse cursor değişsin */
+        @media (min-width: 769px) { #drawing-canvas.active { pointer-events: auto; cursor: crosshair; } }
 
-        /* --- ÖZEL KONTROL ÇUBUĞU (MOBİL FIX) --- */
-        .custom-controls {
+        /* ========================================= */
+        /* --- DESKTOP KONTROLLERİ (ÖZEL YAPIM) --- */
+        /* ========================================= */
+        .desktop-controls {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
-            padding: 20px; z-index: 15000; /* Çok yüksek Z-Index */
-            display: none; /* Login ekranında gizli */
-            flex-direction: column; gap: 10px;
+            padding: 15px 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 8px;
             transition: opacity 0.3s ease; opacity: 1;
-            pointer-events: auto; /* Tıklamaları yakala */
-        }
-        
-        /* Progress Bar */
-        .progress-container {
-            width: 100%; height: 10px; /* Mobilde kolay tutulması için */
-            background: rgba(255,255,255,0.2);
-            border-radius: 5px; cursor: pointer; position: relative;
-            touch-action: none; 
-        }
-        .progress-filled {
-            height: 100%; background: var(--reddish); width: 0%;
-            border-radius: 5px; position: relative; box-shadow: 0 0 10px var(--reddish);
-        }
-        .progress-thumb {
-            position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
-            width: 16px; height: 16px; background: white; border-radius: 50%;
-            opacity: 1; 
         }
 
-        /* Butonlar */
+        /* İNCE PROGRESS BAR (Senin İstediğin) */
+        .progress-container {
+            width: 100%; height: 4px; /* Çok ince */
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px; cursor: pointer; position: relative;
+            transition: height 0.1s ease;
+        }
+        .progress-container:hover { height: 6px; } /* Hoverda çok az kalınlaşsın */
+        
+        .progress-filled { height: 100%; background: var(--reddish); width: 0%; border-radius: 2px; position: relative; box-shadow: 0 0 10px var(--reddish); }
+        
+        /* KÜÇÜK TOP */
+        .progress-thumb {
+            position: absolute; right: -4px; top: 50%; transform: translateY(-50%) scale(0); 
+            width: 10px; height: 10px; background: white; border-radius: 50%;
+            transition: transform 0.1s ease;
+        }
+        .progress-container:hover .progress-thumb { transform: translateY(-50%) scale(1); }
+
         .controls-row { display: flex; align-items: center; justify-content: space-between; }
         .controls-left, .controls-right { display: flex; align-items: center; gap: 15px; }
         
-        .ctrl-btn {
-            background: none; border: none; color: white; font-size: 22px; /* Mobilde rahat basılsın */
-            cursor: pointer; transition: 0.2s; opacity: 0.9; position: relative;
-            display: flex; align-items: center; justify-content: center; padding: 5px;
-        }
+        .ctrl-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; transition: 0.2s; opacity: 0.9; position: relative; padding: 5px; }
         .ctrl-btn:hover { color: var(--primary); opacity: 1; transform: scale(1.1); }
         .ctrl-btn.active { color: var(--primary); text-shadow: 0 0 10px var(--primary); opacity: 1; }
 
         /* Ses Slider */
         .volume-wrapper { display: flex; align-items: center; position: relative; }
-        .volume-slider-container {
-            width: 80px; /* Mobilde hep açık kalsın */
-            display: flex; align-items: center; margin-right: 5px;
-        }
-        /* Masaüstünde hover ile açılır */
-        @media (min-width: 769px) {
-            .volume-slider-container { width: 0; overflow: hidden; transition: width 0.3s ease; }
-            .volume-wrapper:hover .volume-slider-container { width: 110px; }
-        }
-        
-        input[type=range].volume-slider {
-            -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.3);
-            border-radius: 2px; outline: none;
-        }
-        input[type=range].volume-slider::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 14px; height: 14px; background: var(--primary);
-            border-radius: 50%; cursor: pointer;
-        }
-        #volume-text { font-size: 11px; color: var(--primary); width: 40px; text-align: right; margin-right: 5px; font-weight: bold; }
-        
+        .volume-slider-container { width: 0; overflow: hidden; transition: width 0.3s ease; display: flex; align-items: center; margin-right: 5px; }
+        .volume-wrapper:hover .volume-slider-container { width: 100px; }
+        input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; outline: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+        #volume-text { font-size: 11px; color: var(--primary); width: 35px; text-align: right; margin-right: 5px; font-weight: bold; }
         .time-display { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.8; margin-left: 5px; }
 
         /* Ayarlar Menüsü */
-        #settings-menu {
-            position: absolute; bottom: 70px; right: 20px; 
-            background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px;
-            padding: 10px; min-width: 160px; display: none; flex-direction: column; gap: 5px;
-            backdrop-filter: blur(10px); z-index: 16000;
-        }
+        #settings-menu { position: absolute; bottom: 60px; right: 20px; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; padding: 10px; min-width: 160px; display: none; flex-direction: column; gap: 5px; backdrop-filter: blur(10px); z-index: 10000; }
         #settings-menu.open { display: flex; }
         .settings-item { padding: 10px; color: white; font-size: 13px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
         .settings-item:hover { background: rgba(255,255,255,0.1); }
 
-        /* IDLE MODE (Mouse durunca gizle) */
-        body.user-idle .custom-controls { opacity: 0; pointer-events: none; }
-        body.user-idle .ui-element { opacity: 0; pointer-events: none; }
-        body.user-idle { cursor: none; }
-        
-        /* Chat Docking */
-        #chat-panel { 
-            position: fixed; bottom: 90px; right: 20px; width: 320px; height: 400px; 
-            background: var(--glass); border-radius: 16px; border: 1px solid #333; 
-            display: flex; flex-direction: column; 
-            transform-origin: bottom right;
-            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease; 
-            z-index: 14000; /* Kontrollerin altında kalsın */
+        /* ========================================= */
+        /* --- MOBİL KONTROLLERİ (BASİT & NET) --- */
+        /* ========================================= */
+        .mobile-controls {
+            position: fixed; bottom: 20px; width: 100%; 
+            display: none; /* Desktopta gizli */
+            justify-content: space-between; padding: 0 20px; z-index: 10000;
+            pointer-events: none; /* Tıklamalar arkaya geçmesin, sadece butonlar çalışsın */
         }
+        .mob-btn {
+            width: 50px; height: 50px; background: rgba(0,0,0,0.6); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: white; border: 1px solid rgba(255,255,255,0.2);
+            pointer-events: auto; backdrop-filter: blur(5px);
+        }
+        .mob-btn:active { background: var(--primary); color: black; }
+
+        /* MEDIA QUERY: EĞER MOBİLSE */
+        @media (max-width: 768px) {
+            .desktop-controls { display: none !important; } /* Masaüstü barı gizle */
+            .mobile-controls { display: flex !important; } /* Mobil butonları göster */
+            
+            /* Chat boyutu mobilde daha uygun olsun */
+            #chat-panel { width: 85%; right: 7.5%; bottom: 80px; height: 350px; }
+            
+            /* Ambilight mobilde kapalı olsun (performans) */
+            #ambilight-canvas { display: none; }
+        }
+
+        /* --- SOHBET VE DİĞERLERİ (ORTAK) --- */
+        #chat-panel { position: fixed; bottom: 80px; right: 20px; width: 320px; height: 400px; background: var(--glass); border-radius: 16px; border: 1px solid #333; display: flex; flex-direction: column; transform-origin: bottom right; transition: transform 0.5s ease, opacity 0.5s ease; z-index: 9998; }
         #chat-panel:not(.open) { transform: scale(0); opacity: 0; pointer-events: none; }
         #chat-panel.open { transform: scale(1); opacity: 1; pointer-events: auto; }
-        body.user-idle #chat-panel.open { transform: translateY(70px) !important; opacity: 0.9; }
-
-        /* --- UI ELEMANLARI --- */
-        #file-wrapper { position: fixed; top: 20px; left: 20px; z-index: 10005; } 
-        #file-label { 
-            background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 8px; 
-            cursor: pointer; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 10px; 
-            backdrop-filter: blur(4px); transition: 0.3s; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1); 
+        
+        /* Desktop Idle Mode: Sadece desktop kontrolleri gizlensin */
+        @media (min-width: 769px) {
+            body.user-idle .desktop-controls { opacity: 0; pointer-events: none; }
+            body.user-idle { cursor: none; }
+            body.user-idle #chat-panel.open { transform: translateY(60px); opacity: 0.9; }
         }
-        #file-label:hover { background: rgba(0,0,0,0.9); color: white; border-color: var(--primary); }
+
+        /* UI Elemanları */
+        #file-wrapper { position: fixed; top: 20px; left: 20px; z-index: 10005; }
+        #file-label { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 8px; cursor: pointer; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 10px; backdrop-filter: blur(4px); transition: 0.3s; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1); }
         input[type="file"] { display: none; }
-
-        #user-list-container { 
-            position: fixed; top: 20px; right: 20px; z-index: 10005; 
-            background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 12px; 
-            backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1); 
-            display: none; flex-direction: column; gap: 5px; max-width: 200px; 
-        }
+        #user-list-container { position: fixed; top: 20px; right: 20px; z-index: 10005; background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1); display: none; flex-direction: column; gap: 5px; max-width: 200px; }
         .user-list-title { font-size: 11px; color: var(--primary); font-weight: bold; margin-bottom: 5px; display: block; }
         .user-item { font-size: 13px; color: white; display: flex; align-items: center; gap: 8px; }
 
-        /* --- GİRİŞ VE INTRO --- */
+        /* Giriş Ekranı */
         #setup-screen { position: fixed; inset: 0; z-index: 30000; background: linear-gradient(135deg, #050505 0%, #1f1016 100%); display: flex; flex-direction: column; align-items: center; justify-content:center; padding: 20px; }
         #intro-screen { position: fixed; inset: 0; z-index: 40000; background: black; display: none; align-items: center; justify-content: center; }
         #intro-video { width: 100%; height: 100%; object-fit: cover; }
-        
         .logo { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 40px; text-align: center; text-transform: uppercase; text-shadow: 0 0 20px rgba(255, 128, 191, 0.3); }
         .input-field { width: 100%; max-width: 320px; padding: 15px; margin: 8px 0; background: rgba(255,255,255,0.05); border: 1px solid #333; color: white; border-radius: 12px; font-size: 16px; outline: none; }
         .btn-start { width: 100%; max-width: 320px; padding: 16px; background: var(--primary); border: none; color: #000; font-weight: 700; border-radius: 12px; font-size: 16px; cursor: pointer; margin-top: 20px; }
 
-        /* --- SOHBET İÇERİĞİ --- */
+        /* Chat İçeriği */
         #chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
         #chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
         .msg { padding: 8px 12px; border-radius: 8px; font-size: 13px; background: rgba(255,255,255,0.08); align-self: flex-start; max-width: 85%; }
@@ -180,7 +151,6 @@
         #send-btn { background: var(--primary); border: none; width: 40px; border-radius: 8px; color: #fff; cursor: pointer; }
         .unread-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
 
-        /* --- DİĞER --- */
         #reaction-container { position: fixed; inset: 0; pointer-events: none; z-index: 8000; overflow: hidden; }
         .floating-emoji { position: absolute; bottom: -50px; font-size: 2rem; animation: floatUp 3s linear forwards; opacity: 0.8; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 10% { opacity: 1; transform: translateY(-50px) scale(1.2); } 100% { transform: translateY(-100vh) scale(1); opacity: 0; } }
@@ -190,11 +160,9 @@
         #typing-indicator { font-size: 11px; color: var(--primary); font-style: italic; height: 15px; padding-left: 15px; margin-bottom: 5px; opacity: 0; transition: opacity 0.3s; }
         #typing-indicator.visible { opacity: 1; }
         
-        .remote-cursor { position: absolute; pointer-events: none; z-index: 9990; width: 12px; height: 12px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary); transform: translate(-50%, -50%); transition: left 0.1s linear, top 0.1s linear; }
+        .remote-cursor { position: absolute; pointer-events: none; z-index: 500; width: 12px; height: 12px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary); transform: translate(-50%, -50%); transition: left 0.1s linear, top 0.1s linear; }
         .cursor-name { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; white-space: nowrap; }
-        
-        /* İZ (TRAIL) */
-        .cursor-trail { position: absolute; pointer-events: none; z-index: 9989; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); transform: translate(-50%, -50%); animation: fadeTrail 0.6s linear forwards; }
+        .cursor-trail { position: absolute; pointer-events: none; z-index: 499; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); transform: translate(-50%, -50%); animation: fadeTrail 0.6s linear forwards; }
         @keyframes fadeTrail { 0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); } }
 
         #emergency-alert { position: fixed; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(255, 0, 0, 0.95); color: white; padding: 30px; border-radius: 12px; z-index: 10000; text-align: center; box-shadow: 0 0 50px rgba(255,0,0,0.8); display: none; border: 2px solid white; }
@@ -227,21 +195,17 @@
             <video id="main-video" playsinline></video>
             <canvas id="drawing-canvas"></canvas>
             
-            <div class="custom-controls" id="custom-controls">
-                
+            <div class="desktop-controls" id="custom-controls">
                 <div id="settings-menu">
                     <div class="settings-item" onclick="toggleCinemaMode()"><i class="fas fa-columns"></i> Sinema Modu</div>
                     <div class="settings-item" onclick="toggleAmbilight()"><i class="fas fa-lightbulb"></i> Ambilight</div>
                 </div>
-
-                <div class="progress-container" id="progress-container">
+                <div class="progress-container" onclick="seekVideo(event)">
                     <div class="progress-filled" id="progress-bar"><div class="progress-thumb"></div></div>
                 </div>
-
                 <div class="controls-row">
                     <div class="controls-left">
                         <button class="ctrl-btn" onclick="togglePlay()"><i class="fas fa-play" id="play-icon"></i></button>
-                        
                         <div class="volume-wrapper">
                             <div class="volume-slider-container">
                                 <span id="volume-text">100%</span>
@@ -249,10 +213,8 @@
                             </div>
                             <button class="ctrl-btn" onclick="toggleMute()"><i class="fas fa-volume-up" id="mute-icon"></i></button>
                         </div>
-
                         <div class="time-display"><span id="curr-time">00:00</span> / <span id="dur-time">00:00</span></div>
                     </div>
-
                     <div class="controls-right">
                         <button class="ctrl-btn" id="btn-draw" onclick="toggleDrawing()" title="Çizim Yap"><i class="fas fa-pencil-alt"></i></button>
                         <button class="ctrl-btn" id="btn-mouse" onclick="toggleMouseShare()" title="Mouse Paylaş"><i class="fas fa-mouse-pointer"></i></button>
@@ -264,6 +226,14 @@
                     </div>
                 </div>
             </div>
+
+            <div class="mobile-controls">
+                <div class="mob-btn" onclick="toggleCinemaMode()"><i class="fas fa-columns"></i></div>
+                <div class="mob-btn" style="position:relative;" onclick="toggleChat()">
+                    <i class="fas fa-comment"></i><div class="unread-dot" id="mob-unread-dot"></div>
+                </div>
+            </div>
+
         </div>
 
         <div id="user-list-container">
@@ -281,7 +251,6 @@
                 <span id="close-chat-btn" onclick="toggleChat()" style="cursor:pointer">✕</span>
             </div>
             <div id="chat-messages"></div>
-            <div id="typing-indicator"></div>
             <div class="reaction-bar">
                 <button class="reaction-btn" onclick="triggerComboCheck('❤️')">❤️</button>
                 <button class="reaction-btn" onclick="triggerComboCheck('😂')">😂</button>
@@ -310,17 +279,25 @@
         const ctx = drawingCanvas.getContext('2d');
         const ambilightCanvas = document.getElementById('ambilight-canvas');
         const ambilightCtx = ambilightCanvas.getContext('2d');
-        const progressBarContainer = document.getElementById('progress-container');
         const progressBarFilled = document.getElementById('progress-bar');
         const dropOverlay = document.getElementById('drop-overlay');
         
         let audioCtx, gainNode, source;
         let myName = "", myRoom = "", isSyncing = false, isChatOpen = false;
         let isMouseSharing = false, isDrawing = false, isPainting = false, isAmbilightOn = false, isCinemaMode = false;
-        let uiTimeout, typingTimeout, lastMouseTime = 0, lastDrawPos = { x: 0, y: 0 }, drawingPaths = [];
-        let isScrubbing = false;
+        let uiTimeout, lastMouseTime = 0, lastDrawPos = { x: 0, y: 0 }, drawingPaths = [];
+        
+        // Cihaz Kontrolü
+        const isMobile = window.innerWidth <= 768;
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Eğer mobilse native controls aç
+            if(isMobile) {
+                video.setAttribute('controls', 'true');
+            } else {
+                video.removeAttribute('controls');
+            }
+
             const savedName = localStorage.getItem('yakishi_username');
             const savedRoom = localStorage.getItem('yakishi_roomname');
             if(savedName) document.getElementById('username').value = savedName;
@@ -331,76 +308,16 @@
         });
 
         // --- COMBO LOGIC ---
-        // Kullanıcının bastığı son tuşları takip et
         const targetCombo = ['❤️', '😂', '😲', '👏', '🔥'];
         let currentCombo = [];
-
         function triggerComboCheck(type) {
-            // Önce normal reaksiyonu gönder
-            sendReaction(type);
-            
-            // Listeye ekle
-            currentCombo.push(type);
-            
-            // Eğer liste 5'ten uzunsa baştan kes
-            if (currentCombo.length > 5) {
-                currentCombo.shift();
-            }
-
-            // Kontrol et: Dizi hedef diziye eşit mi?
-            if (JSON.stringify(currentCombo) === JSON.stringify(targetCombo)) {
-                sendSpecialCombo();
-                currentCombo = []; // Sıfırla
-            }
+            sendReaction(type); currentCombo.push(type);
+            if (currentCombo.length > 5) currentCombo.shift();
+            if (JSON.stringify(currentCombo) === JSON.stringify(targetCombo)) { sendSpecialCombo(); currentCombo = []; }
         }
-
         function sendSpecialCombo() {
-            socket.emit('send-reaction', { roomId: myRoom, type: '🕊️' });
-            showReactionAnim('🕊️');
-            
-            setTimeout(() => {
-                socket.emit('send-reaction', { roomId: myRoom, type: '🤷' });
-                showReactionAnim('🤷');
-            }, 200);
-        }
-
-        // --- SCRUBBING ---
-        progressBarContainer.addEventListener('mousedown', startScrub);
-        progressBarContainer.addEventListener('touchstart', startScrub, {passive: false});
-
-        function startScrub(e) {
-            isScrubbing = true;
-            progressBarContainer.classList.add('active');
-            handleScrub(e);
-            document.addEventListener('mousemove', handleScrub);
-            document.addEventListener('touchmove', handleScrub, {passive: false});
-            document.addEventListener('mouseup', endScrub);
-            document.addEventListener('touchend', endScrub);
-        }
-
-        function handleScrub(e) {
-            if (!isScrubbing) return;
-            if(e.type === 'touchmove') e.preventDefault();
-            const rect = progressBarContainer.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let percent = (clientX - rect.left) / rect.width;
-            percent = Math.max(0, Math.min(1, percent));
-            progressBarFilled.style.width = `${percent * 100}%`;
-            if(video.duration) {
-                video.currentTime = percent * video.duration;
-                document.getElementById('curr-time').innerText = formatTime(video.currentTime);
-            }
-        }
-
-        function endScrub(e) {
-            if (!isScrubbing) return;
-            isScrubbing = false;
-            progressBarContainer.classList.remove('active');
-            emitSync('seek', video.currentTime);
-            document.removeEventListener('mousemove', handleScrub);
-            document.removeEventListener('touchmove', handleScrub);
-            document.removeEventListener('mouseup', endScrub);
-            document.removeEventListener('touchend', endScrub);
+            socket.emit('send-reaction', { roomId: myRoom, type: '🕊️' }); showReactionAnim('🕊️');
+            setTimeout(() => { socket.emit('send-reaction', { roomId: myRoom, type: '🤷' }); showReactionAnim('🤷'); }, 300);
         }
 
         // --- INTRO ---
@@ -425,10 +342,11 @@
             document.getElementById('app-wrapper').style.display = 'flex';
             socket.emit('join-room', { roomId: myRoom, userName: myName });
             document.getElementById('user-list-container').style.display = 'flex';
-            document.getElementById('custom-controls').style.display = 'flex';
+            // Custom controls sadece desktopta açılır, mobilde CSS gizler
+            document.getElementById('custom-controls').style.display = 'flex'; 
         }
 
-        // --- AUDIO ---
+        // --- AUDIO BOOST (Desktop Only) ---
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -448,15 +366,11 @@
             video.muted = (volume === 0);
             updateMuteIcon();
             document.getElementById('volume-text').innerText = Math.round(volume * 100) + '%';
-            document.querySelector('.volume-slider').value = volume;
         }
         function toggleMute() { video.muted = !video.muted; updateMuteIcon(); }
         function updateMuteIcon() {
             const icon = document.getElementById('mute-icon');
-            const sliderVal = document.querySelector('.volume-slider').value;
-            if (video.muted || sliderVal == 0) icon.className = 'fas fa-volume-mute';
-            else if (sliderVal < 0.5) icon.className = 'fas fa-volume-down';
-            else icon.className = 'fas fa-volume-up';
+            if (video.muted) icon.className = 'fas fa-volume-mute'; else icon.className = 'fas fa-volume-up';
         }
 
         // --- DRAG DROP ---
@@ -470,50 +384,57 @@
             }
         });
 
-        // --- KLAVYE ---
+        // --- KLAVYE (Desktop) ---
         document.addEventListener('keydown', (e) => {
-            if (document.activeElement.tagName === "INPUT") return;
+            if (document.activeElement.tagName === "INPUT" || isMobile) return;
             const currentVol = parseFloat(document.querySelector('.volume-slider').value);
             switch(e.code) {
                 case 'Space': e.preventDefault(); togglePlay(); break;
                 case 'ArrowRight': e.preventDefault(); video.currentTime += 5; emitSync('seek', video.currentTime); break;
                 case 'ArrowLeft': e.preventDefault(); video.currentTime -= 5; emitSync('seek', video.currentTime); break;
-                case 'ArrowUp': e.preventDefault(); setVolume(Math.min(2, currentVol + 0.1)); break;
-                case 'ArrowDown': e.preventDefault(); setVolume(Math.max(0, currentVol - 0.1)); break;
+                case 'ArrowUp': e.preventDefault(); 
+                    let newVolUp = Math.min(2, currentVol + 0.1);
+                    document.querySelector('.volume-slider').value = newVolUp;
+                    setVolume(newVolUp); break;
+                case 'ArrowDown': e.preventDefault(); 
+                    let newVolDown = Math.max(0, currentVol - 0.1);
+                    document.querySelector('.volume-slider').value = newVolDown;
+                    setVolume(newVolDown); break;
                 case 'KeyF': toggleFullScreen(); break;
                 case 'KeyC': toggleChat(); break;
             }
         });
 
-        // --- PLAY/PAUSE (MOBİL FIX) ---
-        videoWrapper.addEventListener('click', (e) => {
-            if (e.target.closest('.custom-controls') || e.target.closest('#settings-menu') || isDrawing) return;
-            // Mobilde sadece UI'ı göster/gizle
-            resetUiTimer();
-            // Masaüstünde oynat/durdur
-            if(window.innerWidth > 768) togglePlay(); 
-        });
-        videoWrapper.addEventListener('touchstart', () => { resetUiTimer(); });
-
+        // --- PLAY/PAUSE ---
         function togglePlay() {
+            if(isMobile) return; // Mobilde native player halleder
             if(!audioCtx) initAudioContext();
             if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             if(video.paused) { video.play().catch(console.error); if(!isSyncing) emitSync('play', video.currentTime); } 
             else { video.pause(); if(!isSyncing) emitSync('pause', video.currentTime); }
         }
 
-        video.addEventListener('play', () => { document.getElementById('play-icon').className = 'fas fa-pause'; resetUiTimer(); });
-        video.addEventListener('pause', () => { document.getElementById('play-icon').className = 'fas fa-play'; resetUiTimer(); });
+        video.addEventListener('play', () => { 
+            if(!isMobile) document.getElementById('play-icon').className = 'fas fa-pause'; 
+            resetUiTimer(); 
+        });
+        video.addEventListener('pause', () => { 
+            if(!isMobile) document.getElementById('play-icon').className = 'fas fa-play'; 
+            resetUiTimer(); 
+        });
         video.addEventListener('timeupdate', () => {
-            if(isScrubbing) return;
-            const percent = (video.currentTime / video.duration) * 100;
-            progressBarFilled.style.width = `${percent}%`;
-            document.getElementById('curr-time').innerText = formatTime(video.currentTime);
-            if(video.duration) document.getElementById('dur-time').innerText = formatTime(video.duration);
+            if(!isMobile) {
+                const percent = (video.currentTime / video.duration) * 100;
+                progressBarFilled.style.width = `${percent}%`;
+                document.getElementById('curr-time').innerText = formatTime(video.currentTime);
+                if(video.duration) document.getElementById('dur-time').innerText = formatTime(video.duration);
+            }
         });
 
+        // --- SEEK (Desktop) ---
         function seekVideo(e) {
-            const rect = progressBarContainer.getBoundingClientRect();
+            if(isMobile) return;
+            const rect = e.currentTarget.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const percent = clickX / rect.width;
             const newTime = percent * video.duration;
@@ -530,27 +451,27 @@
             return `${min < 10 ? '0'+min : min}:${sec < 10 ? '0'+sec : sec}`;
         }
 
-        // --- UI GİZLEME (MOBİL UYUMLU) ---
+        // --- UI GİZLEME (Desktop) ---
         function resetUiTimer() {
+            if(isMobile) return;
             document.body.classList.remove('user-idle');
             document.querySelectorAll('.ui-element').forEach(el => el.classList.remove('ui-hidden'));
             document.body.style.cursor = 'default';
             clearTimeout(uiTimeout);
-            
-            uiTimeout = setTimeout(() => {
-                if (!video.paused) {
+            if (!video.paused) {
+                uiTimeout = setTimeout(() => {
                     document.body.classList.add('user-idle');
                     document.querySelectorAll('.ui-element').forEach(el => el.classList.add('ui-hidden'));
                     document.body.style.cursor = 'none';
-                }
-            }, 3000);
+                }, 3000);
+            }
         }
         document.addEventListener('mousemove', resetUiTimer);
-        document.addEventListener('touchstart', resetUiTimer); // MOBİL İÇİN
 
-        // --- DRAWING ---
+        // --- DRAWING (Desktop Only) ---
         function resizeCanvas() { drawingCanvas.width = videoWrapper.clientWidth; drawingCanvas.height = videoWrapper.clientHeight; }
         function toggleDrawing() {
+            if(isMobile) return;
             isDrawing = !isDrawing; const btn = document.getElementById('btn-draw');
             if (isDrawing) { btn.classList.add('active'); drawingCanvas.classList.add('active'); if(isMouseSharing) toggleMouseShare(); showPopup("Mod", "Çizim Açık"); } 
             else { btn.classList.remove('active'); drawingCanvas.classList.remove('active'); }
@@ -558,13 +479,10 @@
         drawingCanvas.addEventListener('mousedown', (e) => startDraw(e));
         drawingCanvas.addEventListener('mousemove', (e) => draw(e));
         drawingCanvas.addEventListener('mouseup', endDraw);
-        drawingCanvas.addEventListener('touchstart', (e) => { if(isDrawing) e.preventDefault(); startDraw(e.touches[0]); }, {passive: false});
-        drawingCanvas.addEventListener('touchmove', (e) => { if(isDrawing) e.preventDefault(); draw(e.touches[0]); }, {passive: false});
-        drawingCanvas.addEventListener('touchend', endDraw);
-
-        function startDraw(pos) { if (!isDrawing) return; isPainting = true; const rect = drawingCanvas.getBoundingClientRect(); lastDrawPos = { x: (pos.clientX - rect.left) / rect.width, y: (pos.clientY - rect.top) / rect.height }; }
+        
+        function startDraw(pos) { if (!isDrawing || isMobile) return; isPainting = true; const rect = drawingCanvas.getBoundingClientRect(); lastDrawPos = { x: (pos.clientX - rect.left) / rect.width, y: (pos.clientY - rect.top) / rect.height }; }
         function draw(pos) {
-            if (!isDrawing || !isPainting) return;
+            if (!isDrawing || !isPainting || isMobile) return;
             const rect = drawingCanvas.getBoundingClientRect();
             const currentX = (pos.clientX - rect.left) / rect.width; const currentY = (pos.clientY - rect.top) / rect.height;
             addPath(lastDrawPos.x, lastDrawPos.y, currentX, currentY);
@@ -587,26 +505,34 @@
         }
         socket.on('draw-line', (data) => { addPath(data.startX, data.startY, data.endX, data.endY); });
 
-        // --- AMBILIGHT ---
+        // --- AMBILIGHT (FIXED) ---
         function toggleAmbilight() {
             isAmbilightOn = !isAmbilightOn; const btn = document.getElementById('btn-ambi');
-            if (isAmbilightOn) { ambilightCanvas.style.opacity = '1'; btn.classList.add('active'); renderAmbilight(); showPopup("Ayarlar", "Ambilight Açık"); } 
+            if (isAmbilightOn) { 
+                ambilightCanvas.style.opacity = '1'; btn.classList.add('active'); 
+                renderAmbilight(); // Loop'u başlat
+                showPopup("Ayarlar", "Ambilight Açık"); 
+            } 
             else { ambilightCanvas.style.opacity = '0'; btn.classList.remove('active'); showPopup("Ayarlar", "Ambilight Kapalı"); }
         }
         function renderAmbilight() {
             if (!isAmbilightOn) return;
-            if (video.readyState >= 2) { ambilightCtx.drawImage(video, 0, 0, ambilightCanvas.width, ambilightCanvas.height); }
+            // Video hazırsa çiz
+            if (video.readyState >= 2) { 
+                ambilightCtx.drawImage(video, 0, 0, ambilightCanvas.width, ambilightCanvas.height); 
+            }
             requestAnimationFrame(renderAmbilight);
         }
 
         // --- MOUSE SHARE ---
         function toggleMouseShare() {
+            if(isMobile) return;
             isMouseSharing = !isMouseSharing; const btn = document.getElementById('btn-mouse');
             if (isMouseSharing) { btn.classList.add('active'); if(isDrawing) toggleDrawing(); showPopup("Sistem", "Mouse Paylaşımı Açık"); } 
             else { btn.classList.remove('active'); }
         }
         videoWrapper.addEventListener('mousemove', (e) => {
-            if (!isMouseSharing || !myName) return;
+            if (!isMouseSharing || !myName || isMobile) return;
             const now = Date.now();
             if (now - lastMouseTime > 50) { 
                 const rect = videoWrapper.getBoundingClientRect();
@@ -616,6 +542,7 @@
             }
         });
         socket.on('mouse-update', (data) => {
+            if(isMobile) return; // Mobilde mouse görme
             let cursor = document.getElementById(`cursor-${data.id}`);
             if (!cursor) {
                 cursor = document.createElement('div'); cursor.id = `cursor-${data.id}`; cursor.className = 'remote-cursor';
@@ -634,7 +561,15 @@
         function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
         function toggleCinemaMode() {
             isCinemaMode = !isCinemaMode;
-            if (isCinemaMode) { video.style.objectFit = 'cover'; showPopup("Mod", "Sinema Modu"); } 
+            if (isCinemaMode) { 
+                video.style.objectFit = 'cover'; 
+                showPopup("Mod", "Sinema Modu"); 
+                // Mobilde chat'i kapat ki video görünsün
+                if(isMobile) {
+                    const panel = document.getElementById('chat-panel');
+                    if(panel.classList.contains('open')) panel.classList.remove('open');
+                }
+            } 
             else { video.style.objectFit = 'contain'; showPopup("Mod", "Normal Mod"); }
         }
         
@@ -654,7 +589,11 @@
         });
         function toggleChat() {
             const panel = document.getElementById('chat-panel'); panel.classList.toggle('open');
-            isChatOpen = panel.classList.contains('open'); if(isChatOpen) document.getElementById('unread-dot').style.display = 'none';
+            isChatOpen = panel.classList.contains('open'); 
+            if(isChatOpen) {
+                document.getElementById('unread-dot').style.display = 'none';
+                if(isMobile) document.getElementById('mob-unread-dot').style.display = 'none';
+            }
         }
         function sendMessage() {
             const input = document.getElementById('msg-input'); const txt = input.value.trim(); if(!txt) return;
@@ -664,7 +603,11 @@
         socket.on('receive-message', (data) => {
             if(data.isSystem) { showPopup("Sistem", data.text); } else {
                 addMessageToUI(data.sender, data.text, false);
-                if (!isChatOpen) { document.getElementById('unread-dot').style.display = 'block'; showPopup(data.sender, data.text); }
+                if (!isChatOpen) { 
+                    document.getElementById('unread-dot').style.display = 'block'; 
+                    if(isMobile) document.getElementById('mob-unread-dot').style.display = 'block';
+                    showPopup(data.sender, data.text); 
+                }
             }
         });
         function addMessageToUI(sender, text, isMine) {
