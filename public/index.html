@@ -28,7 +28,7 @@
         #ambilight-canvas {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 100%; height: 100%; z-index: 0;
-            filter: blur(60px) brightness(0.6); opacity: 0; transition: opacity 1s ease;
+            filter: blur(80px) brightness(0.7); opacity: 0; transition: opacity 1s ease;
         }
 
         #video-container { 
@@ -46,19 +46,18 @@
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
             padding: 20px; z-index: 9999;
-            display: none; /* Başlangıçta gizli */
+            display: none;
             flex-direction: column; gap: 10px;
             transition: opacity 0.4s ease, transform 0.4s ease; opacity: 1;
         }
         
-        /* Progress Bar (KIRMIZIMSI) */
         .progress-container {
             width: 100%; height: 6px; background: rgba(255,255,255,0.2);
             border-radius: 5px; cursor: pointer; position: relative; transition: height 0.2s;
         }
         .progress-container:hover { height: 10px; }
         .progress-filled {
-            height: 100%; background: var(--reddish); /* İstediğin Kırmızı */
+            height: 100%; background: var(--reddish);
             width: 0%; border-radius: 5px; position: relative; 
             box-shadow: 0 0 10px var(--reddish);
         }
@@ -69,7 +68,6 @@
         }
         .progress-container:hover .progress-thumb { opacity: 1; }
 
-        /* Butonlar */
         .controls-row { display: flex; align-items: center; justify-content: space-between; }
         .controls-left, .controls-right { display: flex; align-items: center; gap: 12px; }
         
@@ -80,13 +78,13 @@
         .ctrl-btn:hover { color: var(--primary); opacity: 1; transform: scale(1.1); }
         .ctrl-btn.active { color: var(--primary); text-shadow: 0 0 10px var(--primary); opacity: 1; }
 
-        /* SES SLIDER (Üzerine gelince açılır) */
+        /* SES SLIDER & YÜZDE */
         .volume-wrapper { display: flex; align-items: center; position: relative; }
         .volume-slider-container {
             width: 0; overflow: hidden; transition: width 0.3s ease;
             display: flex; align-items: center; margin-right: 5px;
         }
-        .volume-wrapper:hover .volume-slider-container { width: 80px; }
+        .volume-wrapper:hover .volume-slider-container { width: 100px; }
         
         input[type=range].volume-slider {
             -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.3);
@@ -96,10 +94,16 @@
             -webkit-appearance: none; width: 12px; height: 12px; background: var(--primary);
             border-radius: 50%; cursor: pointer;
         }
+        
+        /* Ses Yüzdesi Metni */
+        #volume-text {
+            font-size: 11px; color: var(--primary); width: 35px; text-align: right;
+            margin-right: 5px; font-weight: bold;
+        }
 
         .time-display { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.8; margin-left: 5px; }
 
-        /* AYARLAR MENÜSÜ (Kontrol çubuğundan açılan) */
+        /* AYARLAR MENÜSÜ */
         #settings-menu {
             position: absolute; bottom: 60px; right: 20px; 
             background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px;
@@ -114,28 +118,23 @@
         body.user-idle .custom-controls { opacity: 0; pointer-events: none; }
         body.user-idle { cursor: none; }
 
-        /* CHAT DOCKING (Süzülme ve Küçülme) */
+        /* --- CHAT DOCKING (GÜNCELLENDİ: ARTIK KÜÇÜLMÜYOR, SADECE KAYIYOR) --- */
         #chat-panel { 
             position: fixed; bottom: 90px; right: 20px; width: 320px; height: 400px; 
             background: var(--glass); border-radius: 16px; border: 1px solid #333; 
             display: flex; flex-direction: column; 
             transform-origin: bottom right;
-            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease; 
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease; 
             z-index: 9998; 
         }
-        /* Gizliyken (Kapalıyken) */
-        #chat-panel:not(.open) {
-            transform: scale(0); opacity: 0; pointer-events: none;
-        }
-        /* Açıkken */
-        #chat-panel.open { 
-            transform: scale(1); opacity: 1; pointer-events: auto;
-        }
+        
+        #chat-panel:not(.open) { transform: scale(0); opacity: 0; pointer-events: none; }
+        #chat-panel.open { transform: scale(1); opacity: 1; pointer-events: auto; }
 
-        /* Mouse durduğunda (Idle) ve Chat Açıksa -> KÖŞEYE PARK ET */
+        /* Mouse durduğunda sadece AŞAĞI ve SAĞA kayar, boyutu değişmez */
         body.user-idle #chat-panel.open {
-            transform: translateY(70px) scale(0.85) !important; /* Aşağı kaydır ve küçült */
-            opacity: 0.7; /* Şeffaflaştır */
+            transform: translateY(70px) translateX(10px) !important;
+            opacity: 0.85; /* Çok hafif şeffaf */
         }
 
         /* DİĞER CSS */
@@ -172,6 +171,31 @@
 
         .ui-element { transition: opacity 0.5s ease; opacity: 1; }
         body.user-idle .ui-element { opacity: 0; pointer-events: none; }
+
+        /* Sağ Alt Butonlar */
+        .bottom-right-controls {
+            position: fixed; bottom: 30px; right: 30px; 
+            display: flex; gap: 10px; align-items: center; z-index: 9999;
+            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        body.user-idle .bottom-right-controls { transform: translateY(150%); }
+        body:not(.user-idle) .bottom-right-controls { transform: translateY(0); }
+
+        #chat-toggle { 
+            width: 55px; height: 55px; background: var(--primary); border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 22px; cursor: pointer; color: #fff; 
+            box-shadow: 0 5px 20px rgba(255, 128, 191, 0.5); transition: transform 0.2s;
+        }
+        #settings-toggle { 
+            width: 50px; height: 50px; background: transparent; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            font-size: 24px; cursor: pointer; color: rgba(255,255,255,0.7); 
+            transition: all 0.2s; margin-right: 20px;
+        }
+        #settings-toggle:hover { color: var(--primary); transform: rotate(90deg); }
+        #chat-toggle:active, #settings-toggle:active { transform: scale(0.9); }
+        .unread-dot { position: absolute; top: 0; right: 0; width: 14px; height: 14px; background: white; border-radius: 50%; display: none; border: 2px solid var(--primary); }
 
         #user-list-container { position: fixed; top: 20px; right: 20px; z-index: 60; background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.1); display: none; flex-direction: column; gap: 5px; max-width: 200px; }
         .user-list-title { font-size: 11px; color: var(--primary); font-weight: bold; margin-bottom: 5px; display: block; }
@@ -239,7 +263,7 @@
     </div>
 
     <div id="app-wrapper">
-        <div id="video-container">
+        <div id="video-wrapper">
             <video id="main-video" playsinline></video>
             <canvas id="drawing-canvas"></canvas>
             
@@ -266,6 +290,7 @@
                         
                         <div class="volume-wrapper">
                             <div class="volume-slider-container">
+                                <span id="volume-text">100%</span>
                                 <input type="range" min="0" max="2" step="0.05" value="1" class="volume-slider" oninput="setVolume(this.value)">
                             </div>
                             <button class="ctrl-btn" onclick="toggleMute()"><i class="fas fa-volume-up" id="mute-icon"></i></button>
@@ -329,7 +354,7 @@
     <script>
         const socket = io({ reconnection: true, reconnectionAttempts: Infinity, reconnectionDelay: 1000 });
         const video = document.getElementById('main-video');
-        const videoContainer = document.getElementById('video-container');
+        const videoWrapper = document.getElementById('video-wrapper');
         const drawingCanvas = document.getElementById('drawing-canvas');
         const ctx = drawingCanvas.getContext('2d');
         const ambilightCanvas = document.getElementById('ambilight-canvas');
@@ -337,6 +362,11 @@
         const progressBar = document.getElementById('progress-bar');
         const dropOverlay = document.getElementById('drop-overlay');
         
+        // AUDIO CONTEXT (Ses Boost İçin)
+        let audioCtx;
+        let gainNode;
+        let source;
+
         let myName = "";
         let myRoom = "";
         let isSyncing = false;
@@ -363,6 +393,57 @@
             loopDrawing();
         });
 
+        // --- AUDIO BOOST INIT ---
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                source = audioCtx.createMediaElementSource(video);
+                gainNode = audioCtx.createGain();
+                source.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+            }
+        }
+
+        // --- SES KONTROLÜ (200% BOOST) ---
+        function setVolume(val) {
+            // Audio Context'i ilk etkileşimde başlat
+            if(!audioCtx) initAudioContext();
+            if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
+            const volume = parseFloat(val);
+            
+            if (volume <= 1) {
+                // 0-100% Arası: Normal ses
+                video.volume = volume;
+                if(gainNode) gainNode.gain.value = 1; 
+            } else {
+                // 100-200% Arası: Gain Boost
+                video.volume = 1;
+                if(gainNode) gainNode.gain.value = volume; // 1 ile 2 arası gain
+            }
+
+            video.muted = (volume === 0);
+            updateMuteIcon();
+            
+            // Yüzde Yazısı
+            document.getElementById('volume-text').innerText = Math.round(volume * 100) + '%';
+            document.querySelector('.volume-slider').value = volume;
+        }
+
+        function toggleMute() {
+            video.muted = !video.muted;
+            updateMuteIcon();
+        }
+        function updateMuteIcon() {
+            const icon = document.getElementById('mute-icon');
+            const sliderVal = document.querySelector('.volume-slider').value;
+            
+            if (video.muted || sliderVal == 0) icon.className = 'fas fa-volume-mute';
+            else if (sliderVal < 0.5) icon.className = 'fas fa-volume-down';
+            else icon.className = 'fas fa-volume-up';
+        }
+
         // --- DRAG & DROP ---
         document.body.addEventListener('dragover', (e) => { e.preventDefault(); dropOverlay.classList.add('active'); });
         document.body.addEventListener('dragleave', (e) => { 
@@ -384,12 +465,14 @@
         // --- KLAVYE KONTROLLERİ ---
         document.addEventListener('keydown', (e) => {
             if (document.activeElement.tagName === "INPUT") return;
+            const currentVol = parseFloat(document.querySelector('.volume-slider').value);
+            
             switch(e.code) {
                 case 'Space': e.preventDefault(); togglePlay(); break;
                 case 'ArrowRight': e.preventDefault(); video.currentTime += 5; emitSync('seek', video.currentTime); break;
                 case 'ArrowLeft': e.preventDefault(); video.currentTime -= 5; emitSync('seek', video.currentTime); break;
-                case 'ArrowUp': e.preventDefault(); setVolume(Math.min(2, video.volume + 0.1)); break;
-                case 'ArrowDown': e.preventDefault(); setVolume(Math.max(0, video.volume - 0.1)); break;
+                case 'ArrowUp': e.preventDefault(); setVolume(Math.min(2, currentVol + 0.1)); break;
+                case 'ArrowDown': e.preventDefault(); setVolume(Math.max(0, currentVol - 0.1)); break;
                 case 'KeyF': toggleFullScreen(); break;
                 case 'KeyC': toggleChat(); break;
             }
@@ -397,13 +480,16 @@
 
         // --- CLICK TO PLAY/PAUSE ---
         videoContainer.addEventListener('click', (e) => {
-            // Kontroller veya menülere tıklanırsa videoyu durdurma
             if (e.target.closest('.custom-controls') || e.target.closest('#settings-menu') || isDrawing) return;
             togglePlay();
         });
 
         // --- CUSTOM PLAYER MANTIKLARI ---
         function togglePlay() {
+            // Audio context başlatma (Browser policy gereği)
+            if(!audioCtx) initAudioContext();
+            if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+
             if(video.paused) {
                 video.play().catch(console.error);
                 if(!isSyncing) emitSync('play', video.currentTime);
@@ -436,24 +522,6 @@
             const newTime = percent * video.duration;
             video.currentTime = newTime;
             emitSync('seek', newTime);
-        }
-
-        // SES
-        function setVolume(val) {
-            video.volume = Math.min(val, 1); // HTML Media Element max volume 1'dir, ama biz sliderı 2 yaptık
-            // GainNode ile %200 ses yapılabilir ama şimdilik standart tutuyoruz
-            updateMuteIcon();
-            document.querySelector('.volume-slider').value = val;
-        }
-        function toggleMute() {
-            video.muted = !video.muted;
-            updateMuteIcon();
-        }
-        function updateMuteIcon() {
-            const icon = document.getElementById('mute-icon');
-            if (video.muted || video.volume === 0) icon.className = 'fas fa-volume-mute';
-            else if (video.volume < 0.5) icon.className = 'fas fa-volume-down';
-            else icon.className = 'fas fa-volume-up';
         }
 
         function toggleFullScreen() {
@@ -531,7 +599,8 @@
             for (let i = 0; i < drawingPaths.length; i++) {
                 const path = drawingPaths[i];
                 ctx.beginPath(); ctx.moveTo(path.x1 * w, path.y1 * h); ctx.lineTo(path.x2 * w, path.y2 * h);
-                ctx.strokeStyle = `rgba(255, 128, 191, ${path.opacity})`; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
+                ctx.strokeStyle = `rgba(255, 128, 191, ${path.opacity})`; 
+                ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
                 path.opacity -= 0.015; path.life--;
             }
             drawingPaths = drawingPaths.filter(p => p.opacity > 0);
@@ -543,8 +612,8 @@
         function toggleAmbilight() {
             isAmbilightOn = !isAmbilightOn;
             const btn = document.getElementById('btn-ambi');
-            if (isAmbilightOn) { ambilightCanvas.style.opacity = '1'; btn.classList.add('active'); renderAmbilight(); } 
-            else { ambilightCanvas.style.opacity = '0'; btn.classList.remove('active'); }
+            if (isAmbilightOn) { ambilightCanvas.style.opacity = '1'; btn.classList.add('active'); renderAmbilight(); showPopup("Ayarlar", "Ambilight Açık"); } 
+            else { ambilightCanvas.style.opacity = '0'; btn.classList.remove('active'); showPopup("Ayarlar", "Ambilight Kapalı"); }
         }
         function renderAmbilight() {
             if (!isAmbilightOn) return;
@@ -582,23 +651,27 @@
             createTrailDot(data.x, data.y);
             clearTimeout(cursor.timeout); cursor.timeout = setTimeout(() => { cursor.style.opacity = '0'; }, 2000);
         });
+        socket.on('remove-cursor', (data) => { const cursor = document.getElementById(`cursor-${data.id}`); if(cursor) cursor.remove(); });
+
         function createTrailDot(x, y) {
             const dot = document.createElement('div'); dot.className = 'cursor-trail'; dot.style.left = x + '%'; dot.style.top = y + '%';
             videoContainer.appendChild(dot); setTimeout(() => { dot.remove(); }, 600);
         }
-        socket.on('remove-cursor', (data) => { const cursor = document.getElementById(`cursor-${data.id}`); if(cursor) cursor.remove(); });
 
         // --- CORE FUNCTIONS ---
         function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
         function toggleCinemaMode() {
             isCinemaMode = !isCinemaMode;
-            // Sinema modu için basit bir full width ayarı, şimdilik sadece görsel olarak ekliyoruz
-            if(isCinemaMode) {
-                video.style.objectFit = 'cover';
-                showPopup("Mod", "Sinema Modu (Doldur)");
+            if (isCinemaMode) {
+                document.getElementById('app-wrapper').classList.add('cinema-mode-active');
+                if (screen.orientation && screen.orientation.lock) { screen.orientation.lock('landscape').catch(e => {}); }
+                if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(e=>{});
+                document.getElementById('chat-panel').classList.add('open'); document.getElementById('close-chat-btn').style.display = 'none';
             } else {
-                video.style.objectFit = 'contain';
-                showPopup("Mod", "Normal Mod (Sığdır)");
+                document.getElementById('app-wrapper').classList.remove('cinema-mode-active'); isCinemaMode = false;
+                if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
+                if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+                document.getElementById('close-chat-btn').style.display = 'block';
             }
         }
 
