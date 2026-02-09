@@ -13,6 +13,9 @@
         
         body { background: var(--dark); color: #e0e0e0; height: 100vh; overflow: hidden; cursor: default; user-select: none; }
         
+        /* Global Scrollbar Gizleme */
+        ::-webkit-scrollbar { width: 0px; background: transparent; display: none; }
+
         #app-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; transition: all 0.3s ease; }
 
         /* SÜRÜKLE BIRAK */
@@ -31,12 +34,10 @@
         video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; }
 
         /* ÇİZİM KATMANI */
-        /* Varsayılan olarak tıklanamaz, JS ile 'active' olunca tıklanabilir olacak */
         #drawing-canvas { 
             position: absolute; inset: 0; width: 100%; height: 100%; 
             z-index: 400; pointer-events: none; touch-action: none; 
         }
-        /* Active sınıfı eklenince tıklamaları yakala */
         #drawing-canvas.active { pointer-events: auto !important; cursor: crosshair; }
 
         /* --- DESKTOP KONTROLLERİ --- */
@@ -106,7 +107,6 @@
         /* --- MOBİL SPLIT SCREEN (SİNEMA MODU) --- */
         body.mobile-cinema-active #app-wrapper { flex-direction: row; }
         body.mobile-cinema-active #video-wrapper { width: 65%; height: 100vh; }
-        /* Sinema modunda video tam otursun */
         body.mobile-cinema-active video { object-fit: contain; width: 100%; height: 100%; } 
         
         body.mobile-cinema-active #chat-panel {
@@ -148,8 +148,17 @@
         .input-field { width: 100%; max-width: 320px; padding: 15px; margin: 8px 0; background: rgba(255,255,255,0.05); border: 1px solid #333; color: white; border-radius: 12px; font-size: 16px; outline: none; }
         .btn-start { width: 100%; max-width: 320px; padding: 16px; background: var(--primary); border: none; color: #000; font-weight: 700; border-radius: 12px; font-size: 16px; cursor: pointer; margin-top: 20px; }
 
+        /* Chat UI */
         #chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
-        #chat-messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
+        
+        /* SOHBET MESAJLARI (Scrollbar Gizlendi) */
+        #chat-messages { 
+            flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+        #chat-messages::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+
         .msg { padding: 8px 12px; border-radius: 8px; font-size: 13px; background: rgba(255,255,255,0.08); align-self: flex-start; max-width: 85%; }
         .msg.mine { background: rgba(255, 128, 191, 0.2); align-self: flex-end; border-right: 2px solid var(--primary); color: #fff; }
         .msg.system { align-self: center; background: transparent; color: #666; font-size: 11px; font-style: italic; border: none; padding: 2px; }
@@ -185,6 +194,9 @@
     <div id="drop-overlay">VİDEOYU BIRAK</div>
     <canvas id="ambilight-canvas"></canvas>
 
+    <div id="reaction-container"></div>
+    <div id="notification-popup"><div style="font-size: 11px; color: var(--primary); font-weight: bold;" id="popup-title">Sistem</div><div style="font-size: 13px; color: #eee;" id="popup-msg">Mesaj</div></div>
+
     <div id="emergency-alert"><i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 10px; color: #ff4444;"></i><br><div id="emergency-msg" style="font-size: 1.2rem; font-weight: bold;">BAĞLANTI KOPTU</div></div>
     <div id="duration-warning"><i class="fas fa-exclamation-triangle"></i> DİKKAT!<br><span style="font-size: 12px;">Süreler uyuşmuyor.</span><div style="margin-top:10px; font-size:11px; opacity: 0.8;" id="duration-diff-msg"></div></div>
     <div id="disconnect-overlay"><i class="fas fa-wifi" style="font-size: 4rem; color: #ff4444; margin-bottom: 20px;"></i><div style="font-size: 1.2rem; font-weight: bold;">BAĞLANTI KOPTU</div><button class="reconnect-btn" onclick="location.reload()" style="margin-top:20px; padding:10px 20px; border-radius:8px; border:none; font-weight:bold;">Yenile</button></div>
@@ -198,9 +210,6 @@
 
     <div id="app-wrapper">
         
-        <div id="reaction-container"></div>
-        <div id="notification-popup"><div style="font-size: 11px; color: var(--primary); font-weight: bold;" id="popup-title">Sistem</div><div style="font-size: 13px; color: #eee;" id="popup-msg">Mesaj</div></div>
-
         <div id="video-wrapper">
             <video id="main-video" playsinline></video>
             <canvas id="drawing-canvas"></canvas>
@@ -321,6 +330,7 @@
             
             function startScrub(e) {
                 isScrubbing = true;
+                progressBarContainer.classList.add('active'); 
                 handleScrub(e);
                 document.addEventListener('mousemove', handleScrub);
                 document.addEventListener('mouseup', endScrub);
@@ -331,7 +341,9 @@
                 const rect = progressBarContainer.getBoundingClientRect();
                 let percent = (e.clientX - rect.left) / rect.width;
                 percent = Math.max(0, Math.min(1, percent));
+                
                 progressBarFilled.style.width = `${percent * 100}%`;
+                
                 if (video.duration) {
                     video.currentTime = percent * video.duration;
                     document.getElementById('curr-time').innerText = formatTime(video.currentTime);
@@ -341,6 +353,7 @@
             function endScrub() {
                 if (!isScrubbing) return;
                 isScrubbing = false;
+                progressBarContainer.classList.remove('active');
                 emitSync('seek', video.currentTime);
                 document.removeEventListener('mousemove', handleScrub);
                 document.removeEventListener('mouseup', endScrub);
@@ -387,15 +400,20 @@
             const uName = document.getElementById('username').value.trim();
             const rName = document.getElementById('roomname').value.trim();
             if (!uName) { alert("İsim girmedin."); return; }
+            
             myName = uName; myRoom = rName;
-            localStorage.setItem('yakishi_username', myName); localStorage.setItem('yakishi_roomname', myRoom);
+            localStorage.setItem('yakishi_username', myName); 
+            localStorage.setItem('yakishi_roomname', myRoom);
+            
             document.getElementById('setup-screen').style.display = 'none';
             const introScreen = document.getElementById('intro-screen');
             const introVideo = document.getElementById('intro-video');
             introScreen.style.display = 'flex';
+            
             document.addEventListener('keydown', skipIntro);
             introScreen.addEventListener('click', skipIntro);
             introScreen.addEventListener('touchstart', skipIntro);
+
             introVideo.play().catch(e => skipIntro());
             introVideo.onended = skipIntro;
             introVideo.onerror = skipIntro;
@@ -473,7 +491,7 @@
             }
         });
 
-        // --- PLAY/PAUSE (CLICK FIX) ---
+        // --- PLAY/PAUSE ---
         videoWrapper.addEventListener('click', (e) => {
             if(isMobile) return; 
             if (e.target.closest('.desktop-controls') || e.target.closest('#settings-menu') || isDrawing) return;
@@ -638,35 +656,34 @@
 
         function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
         
-        // --- SİNEMA MODU (SPLIT SCREEN & FULLSCREEN) ---
+        // --- SİNEMA MODU (SPLIT SCREEN FIX & FULLSCREEN) ---
         function toggleCinemaMode() {
             isCinemaMode = !isCinemaMode;
             if (isCinemaMode) { 
                 document.body.classList.add('mobile-cinema-active');
+                video.style.objectFit = 'cover'; 
+                showPopup("Mod", "Sinema Modu"); 
                 
-                // MOBİLDE GERÇEK FULLSCREEN AÇ
                 if(isMobile) {
+                    // MOBİLDE GERÇEK FULLSCREEN AÇ
                     if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
                     if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(e=>{});
+                    
                     const panel = document.getElementById('chat-panel');
                     panel.classList.add('open');
-                } else {
-                    // Desktop
-                    video.style.objectFit = 'cover'; 
-                    showPopup("Mod", "Sinema Modu"); 
                 }
             } 
             else { 
                 document.body.classList.remove('mobile-cinema-active');
+                video.style.objectFit = 'contain'; 
+                showPopup("Mod", "Normal Mod"); 
                 
                 if(isMobile) {
                     if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
                     if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+                    
                     const panel = document.getElementById('chat-panel');
                     panel.classList.remove('open');
-                } else {
-                    video.style.objectFit = 'contain'; 
-                    showPopup("Mod", "Normal Mod"); 
                 }
             }
         }
