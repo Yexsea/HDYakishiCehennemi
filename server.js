@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
         });
     });
 
-    // YENİ: Çizim Verisi
+    
     socket.on('draw-line', (data) => {
         // data: { startX, startY, endX, endY, color, roomId }
         socket.to(data.roomId).emit('draw-line', data);

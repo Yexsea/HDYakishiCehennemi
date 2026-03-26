@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="simgecik.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* --- TEMA --- */
+        /* TEMA */
         :root { --primary: #ff80bf; --reddish: #ff0040; --dark: #0a0a0a; --glass: rgba(20, 20, 20, 0.95); }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         
@@ -18,14 +18,14 @@
 
         #app-wrapper { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; transition: all 0.3s ease; }
 
-        /* SÜRÜKLE BIRAK */
+        /* SÜRÜKLEME */
         #drop-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 20000; display: none; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; color: var(--primary); border: 5px dashed var(--primary); pointer-events: none; }
         #drop-overlay.active { display: flex; }
 
-        /* AMBILIGHT */
+        /* AMBİYANS IŞIĞI */
         #ambilight-canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; z-index: 0; filter: blur(90px) brightness(1.2) saturate(1.5); opacity: 0; transition: opacity 1s ease; pointer-events: none; }
 
-        /* VIDEO ALANI */
+        /* VİDEO */
         #video-wrapper { 
             width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; 
             background: transparent; position: relative; overflow: hidden; z-index: 10;
@@ -33,14 +33,14 @@
         }
         video { width: 100%; max-height: 100vh; object-fit: contain; z-index: 11; }
 
-        /* ÇİZİM KATMANI */
+        /* ÇİZİM */
         #drawing-canvas { 
             position: absolute; inset: 0; width: 100%; height: 100%; 
             z-index: 400; pointer-events: none; touch-action: none; 
         }
         #drawing-canvas.active { pointer-events: auto !important; cursor: crosshair; }
 
-        /* --- DESKTOP KONTROLLERİ --- */
+        /* KONTROLLER */
         .desktop-controls {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
@@ -49,7 +49,7 @@
             transition: opacity 0.3s ease; opacity: 1;
         }
 
-        /* İNCE PROGRESS BAR */
+        /* PROGRESS BAR */
         .progress-container {
             width: 100%; height: 4px; 
             background: rgba(255,255,255,0.2);
@@ -82,7 +82,7 @@
         #volume-text { font-size: 11px; color: var(--primary); width: 35px; text-align: right; margin-right: 5px; font-weight: bold; }
         .time-display { font-size: 12px; font-variant-numeric: tabular-nums; opacity: 0.8; margin-left: 5px; }
 
-        /* --- MOBİL KONTROLLERİ --- */
+        /* MOBİL KONTROLLER */
         .mobile-controls {
             position: fixed; bottom: 20px; width: 100%; 
             display: none; justify-content: space-between; padding: 0 20px; z-index: 10000;
@@ -96,7 +96,7 @@
         }
         .mob-btn:active { background: var(--primary); color: black; }
 
-        /* --- MEDIA QUERIES (MOBİL) --- */
+        /* MEDIA QUERIES (MOBİL) */
         @media (max-width: 768px) {
             .desktop-controls { display: none !important; }
             .mobile-controls { display: flex !important; }
@@ -104,7 +104,7 @@
             #chat-panel { width: 85%; right: 7.5%; bottom: 80px; height: 350px; }
         }
 
-        /* --- MOBİL SPLIT SCREEN (SİNEMA MODU) --- */
+        /* MOBİL SİNEMA MODU */
         body.mobile-cinema-active #app-wrapper { flex-direction: row; }
         body.mobile-cinema-active #video-wrapper { width: 65%; height: 100vh; }
         body.mobile-cinema-active video { object-fit: contain; width: 100%; height: 100%; } 
@@ -118,7 +118,7 @@
         }
         body.mobile-cinema-active .mobile-controls { width: 65%; }
 
-        /* Ortak UI */
+        /* ORTAK UI */
         #settings-menu { position: absolute; bottom: 60px; right: 20px; background: rgba(20, 20, 20, 0.95); border: 1px solid #333; border-radius: 12px; padding: 10px; min-width: 160px; display: none; flex-direction: column; gap: 5px; backdrop-filter: blur(10px); z-index: 10000; }
         #settings-menu.open { display: flex; }
         .settings-item { padding: 10px; color: white; font-size: 13px; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
@@ -148,10 +148,10 @@
         .input-field { width: 100%; max-width: 320px; padding: 15px; margin: 8px 0; background: rgba(255,255,255,0.05); border: 1px solid #333; color: white; border-radius: 12px; font-size: 16px; outline: none; }
         .btn-start { width: 100%; max-width: 320px; padding: 16px; background: var(--primary); border: none; color: #000; font-weight: 700; border-radius: 12px; font-size: 16px; cursor: pointer; margin-top: 20px; }
 
-        /* Chat UI */
+        /* CHAT UI */
         #chat-header { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; color: var(--primary); display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
         
-        /* SOHBET MESAJLARI (Scrollbar Gizlendi) */
+        /* SOHBET MESAJLARI */
         #chat-messages { 
             flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px;
             scrollbar-width: none; /* Firefox */
@@ -324,7 +324,7 @@
             loopDrawing();
         });
 
-        // --- SCRUBBING (DESKTOP) ---
+        /* SCRUBBING */
         if (!isMobile) {
             progressBarContainer.addEventListener('mousedown', startScrub);
             
@@ -360,7 +360,7 @@
             }
         }
 
-        // --- AMBILIGHT (KESİN ÇÖZÜM) ---
+        /* AMBIYANS */
         function toggleAmbilight() {
             if(isMobile) return; 
             isAmbilightOn = !isAmbilightOn; const btn = document.getElementById('settings-toggle');
@@ -380,7 +380,7 @@
             requestAnimationFrame(loopAmbilight);
         }
 
-        // --- COMBO LOGIC ---
+        /* KUŞ */
         const targetCombo = ['❤️', '😂', '😲', '👏', '🔥'];
         let currentCombo = [];
         function triggerComboCheck(type) {
@@ -393,7 +393,7 @@
             setTimeout(() => { socket.emit('send-reaction', { roomId: myRoom, type: '🤷' }); showReactionAnim('🤷'); }, 300);
         }
 
-        // --- INTRO & SKIP ---
+        /* İNTRO */
         let introSkipped = false;
 
         function startIntroSequence() {
@@ -438,7 +438,7 @@
             if(!isMobile) document.getElementById('custom-controls').style.display = 'flex'; 
         }
 
-        // --- AUDIO BOOST ---
+        /* SES ARTTIRMA */
         function initAudioContext() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -465,7 +465,7 @@
             if (video.muted) icon.className = 'fas fa-volume-mute'; else icon.className = 'fas fa-volume-up';
         }
 
-        // --- DRAG DROP ---
+        /* DRAG DROP */
         document.body.addEventListener('dragover', (e) => { e.preventDefault(); dropOverlay.classList.add('active'); });
         document.body.addEventListener('dragleave', (e) => { if (e.clientX === 0 || e.clientY === 0) dropOverlay.classList.remove('active'); });
         document.body.addEventListener('drop', (e) => {
@@ -476,7 +476,7 @@
             }
         });
 
-        // --- KLAVYE ---
+        /* KLAVYE */
         document.addEventListener('keydown', (e) => {
             if (document.activeElement.tagName === "INPUT" || isMobile) return;
             const currentVol = parseFloat(document.querySelector('.volume-slider').value);
@@ -491,7 +491,7 @@
             }
         });
 
-        // --- PLAY/PAUSE ---
+        /* OYNAT-DURDUR */
         videoWrapper.addEventListener('click', (e) => {
             if(isMobile) return; 
             if (e.target.closest('.desktop-controls') || e.target.closest('#settings-menu') || isDrawing) return;
@@ -517,7 +517,7 @@
             }
         });
 
-        // --- SEEK (Desktop Click) ---
+        /* HİDE AND SEEK */
         function seekVideo(e) {
             if(isMobile) return;
             const rect = progressBarContainer.getBoundingClientRect();
@@ -537,7 +537,7 @@
             return `${min < 10 ? '0'+min : min}:${sec < 10 ? '0'+sec : sec}`;
         }
 
-        // --- UI GİZLEME (Desktop) ---
+        /* UI GİZLEME */
         function resetUiTimer() {
             if(isMobile) return;
             document.body.classList.remove('user-idle');
@@ -554,7 +554,7 @@
         }
         document.addEventListener('mousemove', resetUiTimer);
 
-        // --- DRAWING ---
+        /* ÇİZİM */
         function resizeCanvas() { drawingCanvas.width = videoWrapper.clientWidth; drawingCanvas.height = videoWrapper.clientHeight; }
         
         function toggleDrawing() {
@@ -574,7 +574,7 @@
             }
         }
         
-        // ÖNEMLİ: Çizim yaparken tıklama video wrapper'a gitmesin
+        
         drawingCanvas.addEventListener('click', (e) => {
             if(isDrawing) e.stopPropagation();
         });
@@ -613,7 +613,7 @@
         }
         socket.on('draw-line', (data) => { addPath(data.startX, data.startY, data.endX, data.endY); });
 
-        // --- MOUSE SHARE ---
+        /* MAUSE PAYLAŞMA */
         function toggleMouseShare() {
             if(isMobile) return;
             isMouseSharing = !isMouseSharing; const btn = document.getElementById('btn-mouse');
@@ -656,7 +656,7 @@
 
         function toggleSettings() { document.getElementById('settings-menu').classList.toggle('open'); }
         
-        // --- SİNEMA MODU (SPLIT SCREEN FIX & FULLSCREEN) ---
+        /* SİNEMA MODU */
         function toggleCinemaMode() {
             isCinemaMode = !isCinemaMode;
             if (isCinemaMode) { 
