@@ -31,6 +31,7 @@ const io = new Server(server, {
 const activeUsers = {};
 const roomDurations = {}; 
 
+
 io.on('connection', (socket) => {
     
     socket.on('join-room', ({ roomId, userName }) => {
@@ -87,6 +88,31 @@ io.on('connection', (socket) => {
             if (diff > 5) { 
                 socket.emit('duration-error', { serverDuration: roomDurations[roomId], yourDuration: duration });
             }
+        }
+    });
+
+    socket.on('page-url', ({ roomId, url }) => {
+        if (activeUsers[socket.id]) {
+            activeUsers[socket.id].url = url;
+        }
+        // Odadaki diğer kullanıcıların URL'lerini kontrol et
+        const otherUsers = Object.entries(activeUsers)
+            .filter(([id, u]) => u.room === roomId && id !== socket.id && u.url);
+        
+        const mismatch = otherUsers.filter(([id, u]) => u.url !== url);
+        if (mismatch.length > 0) {
+            // Bu kullanıcıya uyarı gönder
+            socket.emit('url-mismatch', {
+                yourUrl: url,
+                others: mismatch.map(([id, u]) => ({ name: u.name, url: u.url }))
+            });
+            // Diğerlerine de uyarı gönder
+            mismatch.forEach(([id, u]) => {
+                io.to(id).emit('url-mismatch', {
+                    yourUrl: u.url,
+                    others: [{ name: activeUsers[socket.id]?.name, url: url }]
+                });
+            });
         }
     });
 
