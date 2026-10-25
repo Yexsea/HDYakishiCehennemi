@@ -11,13 +11,7 @@ A real-time co-watching platform. Everyone in a room watches the same video; whe
 ![Web Audio API](https://img.shields.io/badge/Web%20Audio%20API-555555?style=flat-square)
 ![Render](https://img.shields.io/badge/deployed%20on-Render-46E3B7?style=flat-square&logo=render&logoColor=black)
 
-<!-- DEMO-BASLANGIC  (video eklerken bu satırı ve aşağıdaki DEMO-BITIS satırını sil)
-## ▶ Demo
-
-VIDEO_LINKI_BURAYA
-
-*Real recording of two browser windows in the same room: play, seek, pause, chat, reactions, drawing, cursor sharing and the auto-pause when someone drops. Demo film: [Big Buck Bunny](https://peach.blender.org/) (CC BY 3.0, © Blender Foundation).*
-DEMO-BITIS -->
+https://github.com/user-attachments/assets/4f0bf727-ee3e-4f55-bd04-71ad858db0ea
 
 ---
 
