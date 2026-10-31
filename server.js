@@ -20,8 +20,8 @@ app.get('/ping', (req, res) => {
 
 const io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
-    pingTimeout: 5000,
-    pingInterval: 2000,
+    pingTimeout: 20000,
+    pingInterval: 10000,
     connectionStateRecovery: {
         maxDisconnectionDuration: 2 * 60 * 1000,
         skipMiddlewares: true,
@@ -37,11 +37,40 @@ const roomMessageHistory = {};
 // Özellik 1: Odanın mevcut oynatma durumunu sakla
 const roomPlayState = {};
 
+// Başkan sistemi: odanın başkanı (isimle tutulur, socket id yeniden bağlanınca değişir)
+const roomLeader = {};
+// Başkanın en son açtığı video sayfası
+const roomLeaderUrl = {};
+// Sayfa yenilenen/değişen kullanıcılar için bekleme süresi (ms)
+const LEAVE_GRACE_MS = 15000;
+// Bekleyen çıkış zamanlayıcıları: key = roomId + '\u0000' + userName
+const pendingLeaves = {};
+
+function leaveKey(roomId, userName) {
+    return roomId + '\u0000' + userName;
+}
+
+function isUserInRoom(roomId, userName) {
+    return Object.values(activeUsers).some(u => u.room === roomId && u.name === userName);
+}
+
+function ensureLeader(roomId, userName) {
+    if (!roomLeader[roomId]) roomLeader[roomId] = userName;
+}
+
 io.on('connection', (socket) => {
 
     socket.on('join-room', ({ roomId, userName }) => {
         for (const [id, user] of Object.entries(activeUsers)) {
             if (user.name === userName && user.room === roomId) delete activeUsers[id];
+        }
+
+        // Bekleme süresi içinde geri döndüyse (sayfa yenileme/değiştirme) sessizce devam et
+        const key = leaveKey(roomId, userName);
+        const isRejoin = !!pendingLeaves[key];
+        if (isRejoin) {
+            clearTimeout(pendingLeaves[key]);
+            delete pendingLeaves[key];
         }
 
         socket.join(roomId);
@@ -53,6 +82,8 @@ io.on('connection', (socket) => {
             slowConnection: false
         };
 
+        ensureLeader(roomId, userName);
+
         // Özellik 4: Mesaj geçmişini gönder (yeni kullanıcıya)
         if (roomMessageHistory[roomId] && roomMessageHistory[roomId].length > 0) {
             socket.emit('message-history', roomMessageHistory[roomId]);
@@ -63,16 +94,54 @@ io.on('connection', (socket) => {
             socket.emit('catch-up-sync', roomPlayState[roomId]);
         }
 
-        const joinMsg = { sender: 'Sistem', text: `${userName} odaya katıldı.`, isSystem: true };
-        io.to(roomId).emit('receive-message', joinMsg);
+        // Başkanın açtığı son videoyu yeni gelene de bildir
+        if (roomLeaderUrl[roomId] && roomLeader[roomId] !== userName) {
+            socket.emit('leader-navigated', { url: roomLeaderUrl[roomId], leaderName: roomLeader[roomId], onJoin: true });
+        }
 
-        // Özellik 4: Sistem mesajını da geçmişe ekle
-        addToHistory(roomId, joinMsg);
+        if (!isRejoin) {
+            const joinMsg = { sender: 'Sistem', text: `${userName} odaya katıldı.`, isSystem: true };
+            io.to(roomId).emit('receive-message', joinMsg);
+
+            // Özellik 4: Sistem mesajını da geçmişe ekle
+            addToHistory(roomId, joinMsg);
+        }
 
         updateUserList(roomId);
     });
 
+    // Başkan yeni bir video sayfası açtı → odadaki herkese bildir
+    socket.on('leader-navigate', ({ roomId, url }) => {
+        const user = activeUsers[socket.id];
+        if (!user || user.room !== roomId || roomLeader[roomId] !== user.name) return;
+        if (typeof url !== 'string' || url.length > 2048 || !/^https?:\/\//i.test(url)) return;
+        if (normalizeUrl(roomLeaderUrl[roomId]) === normalizeUrl(url)) return;
+
+        roomLeaderUrl[roomId] = url;
+        // Yeni video: eski oynatma durumu ve süre artık geçersiz
+        delete roomPlayState[roomId];
+        delete roomDurations[roomId];
+
+        socket.to(roomId).emit('leader-navigated', { url, leaderName: user.name });
+    });
+
+    // Başkan başkanlığı başka birine devrediyor
+    socket.on('transfer-leader', ({ roomId, targetName }) => {
+        const user = activeUsers[socket.id];
+        if (!user || user.room !== roomId || roomLeader[roomId] !== user.name) return;
+        if (!targetName || targetName === user.name || !isUserInRoom(roomId, targetName)) return;
+
+        roomLeader[roomId] = targetName;
+        const msg = { sender: 'Sistem', text: `👑 ${user.name}, başkanlığı ${targetName} kişisine devretti.`, isSystem: true };
+        io.to(roomId).emit('receive-message', msg);
+        addToHistory(roomId, msg);
+        updateUserList(roomId);
+    });
+
     socket.on('mouse-move', (data) => {
+        if (data.color && activeUsers[socket.id]) {
+            activeUsers[socket.id].color = data.color;
+        }
         socket.to(data.roomId).emit('mouse-update', {
             id: socket.id,
             x: data.x,
@@ -118,7 +187,7 @@ io.on('connection', (socket) => {
         const otherUsers = Object.entries(activeUsers)
             .filter(([id, u]) => u.room === roomId && id !== socket.id && u.url);
 
-        const mismatch = otherUsers.filter(([id, u]) => u.url !== url);
+        const mismatch = otherUsers.filter(([id, u]) => normalizeUrl(u.url) !== normalizeUrl(url));
         if (mismatch.length > 0) {
             socket.emit('url-mismatch', {
                 yourUrl: url,
@@ -167,6 +236,12 @@ io.on('connection', (socket) => {
                 lastPingAt: Date.now(),
                 slowConnection: false
             };
+            const key = leaveKey(data.roomId, data.userName);
+            if (pendingLeaves[key]) {
+                clearTimeout(pendingLeaves[key]);
+                delete pendingLeaves[key];
+            }
+            ensureLeader(data.roomId, data.userName);
             updateUserList(data.roomId);
         } else if (activeUsers[socket.id]) {
             activeUsers[socket.id].lastPingAt = Date.now();
@@ -187,22 +262,50 @@ io.on('connection', (socket) => {
     socket.on('disconnect', (reason) => {
         const user = activeUsers[socket.id];
         if (user) {
-            console.log(`[ÇIKIŞ] ${user.name}`);
-            io.to(user.room).emit('receive-message', {
-                sender: 'Sistem',
-                text: `${user.name} düştü! Video durduruluyor.`,
-                isSystem: true
-            });
-            io.to(user.room).emit('emergency-pause', { userName: user.name });
-            io.to(user.room).emit('remove-cursor', { id: socket.id });
+            const roomId = user.room;
+            const userName = user.name;
+            io.to(roomId).emit('remove-cursor', { id: socket.id });
             delete activeUsers[socket.id];
-            updateUserList(user.room);
-            const usersLeft = Object.values(activeUsers).filter(u => u.room === user.room).length;
-            if (usersLeft === 0) {
-                delete roomDurations[user.room];
-                delete roomPlayState[user.room];
-                delete roomMessageHistory[user.room];
-            }
+            updateUserList(roomId);
+
+            // Aynı isimle başka bağlantısı hâlâ varsa hiçbir şey yapma
+            if (isUserInRoom(roomId, userName)) return;
+
+            // Sayfa yenileme/değiştirme olabilir: hemen "düştü" deme, biraz bekle
+            const key = leaveKey(roomId, userName);
+            if (pendingLeaves[key]) clearTimeout(pendingLeaves[key]);
+            pendingLeaves[key] = setTimeout(() => {
+                delete pendingLeaves[key];
+                if (isUserInRoom(roomId, userName)) return;
+
+                console.log(`[ÇIKIŞ] ${userName}`);
+                const remaining = Object.values(activeUsers).filter(u => u.room === roomId);
+
+                if (remaining.length === 0) {
+                    delete roomDurations[roomId];
+                    delete roomPlayState[roomId];
+                    delete roomMessageHistory[roomId];
+                    delete roomLeader[roomId];
+                    delete roomLeaderUrl[roomId];
+                    return;
+                }
+
+                io.to(roomId).emit('receive-message', {
+                    sender: 'Sistem',
+                    text: `${userName} düştü! Video durduruluyor.`,
+                    isSystem: true
+                });
+                io.to(roomId).emit('emergency-pause', { userName });
+
+                // Başkan gittiyse odada kalan ilk kişi başkan olur
+                if (roomLeader[roomId] === userName) {
+                    roomLeader[roomId] = remaining[0].name;
+                    const msg = { sender: 'Sistem', text: `👑 Yeni başkan: ${remaining[0].name}`, isSystem: true };
+                    io.to(roomId).emit('receive-message', msg);
+                    addToHistory(roomId, msg);
+                }
+                updateUserList(roomId);
+            }, LEAVE_GRACE_MS);
         }
     });
 });
@@ -211,7 +314,7 @@ function updateUserList(roomId) {
     const uniqueUsers = {};
     for (const [id, info] of Object.entries(activeUsers)) {
         if (info.room === roomId) {
-            uniqueUsers[info.name] = uniqueUsers[info.name] || { name: info.name, slowConnection: false };
+            uniqueUsers[info.name] = uniqueUsers[info.name] || { name: info.name, slowConnection: false, isLeader: roomLeader[roomId] === info.name };
             if (info.slowConnection) uniqueUsers[info.name].slowConnection = true;
         }
     }
@@ -226,6 +329,19 @@ function addToHistory(roomId, message) {
     if (roomMessageHistory[roomId].length > 50) {
         roomMessageHistory[roomId].shift();
     }
+}
+
+function normalizeUrl(u) {
+    if (!u) return '';
+    try {
+        let obj = new URL(u);
+        let host = obj.hostname.replace(/^www\./, '');
+        let path = obj.pathname.replace(/\/$/, '');
+        let params = new URLSearchParams(obj.search);
+        ['fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'ref', 'gclid'].forEach(k => params.delete(k));
+        let search = params.toString();
+        return host + path + (search ? '?' + search : '');
+    } catch (e) { return u; }
 }
 
 function getRandomColor() {
