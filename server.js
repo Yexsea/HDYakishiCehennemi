@@ -98,6 +98,13 @@ function clamp(value, lo, hi) {
     return Math.min(hi, Math.max(lo, value));
 }
 
+// İstemcinin "bu olay sunucu saatiyle şu an oldu" damgası. Saçma değerse sunucu saati kullanılır.
+function validAt(value) {
+    const at = num(value);
+    const now = Date.now();
+    return (at !== null && Math.abs(now - at) < 10000) ? at : now;
+}
+
 // Bir soketin olayları sadece kendi katıldığı odaya gidebilir.
 // İstemcinin gönderdiği roomId'ye bakılmaz.
 function roomOf(socket) {
@@ -160,7 +167,7 @@ io.on('connection', (socket) => {
 
         // Özellik 1: Catch-up sync — mevcut oynatma durumunu gönder
         if (roomPlayState[roomId]) {
-            socket.emit('catch-up-sync', roomPlayState[roomId]);
+            socket.emit('catch-up-sync', Object.assign({}, roomPlayState[roomId], { serverNow: Date.now() }));
         }
 
         // Başkanın açtığı son videoyu yeni gelene de bildir
@@ -306,13 +313,50 @@ io.on('connection', (socket) => {
         if (!room || !data || !allow(socket, 'sync', 10)) return;
         const time = num(data.time);
         if (!SYNC_TYPES.has(data.type) || time === null || time < 0) return;
+        const at = validAt(data.at);
 
-        socket.to(room).emit('sync-update', { roomId: room, type: data.type, time: time });
+        socket.to(room).emit('sync-update', { roomId: room, type: data.type, time: time, at: at, serverNow: Date.now() });
 
         // Özellik 1: Odanın oynatma durumunu güncelle
         if (!roomPlayState[room]) roomPlayState[room] = {};
         roomPlayState[room].time = time;
         roomPlayState[room].type = data.type;
+        roomPlayState[room].at = at;
+        roomPlayState[room].updatedAt = Date.now();
+    });
+
+    // Saat eşitleme: istemci kendi saatiyle sunucu saati arasındaki farkı ölçer
+    socket.on('time-sync', (data) => {
+        if (!data || !allow(socket, 'timesync', 10)) return;
+        const t0 = num(data.t0);
+        if (t0 !== null) socket.emit('time-sync-reply', { t0: t0, serverTime: Date.now() });
+    });
+
+    // Başkan oynatırken her saniye konumunu yayınlar; diğerleri ince ayarla ona kilitlenir
+    socket.on('leader-position', (data) => {
+        const room = roomOf(socket);
+        if (!room || !data || !allow(socket, 'position', 3)) return;
+        if (roomLeader[room] !== activeUsers[socket.id].name) return;
+        const time = num(data.time);
+        const rate = num(data.rate);
+        if (time === null || time < 0) return;
+        const url = cleanStr(data.url, LIMITS.url);
+        if (!/^https?:\/\//i.test(url)) return;
+        const at = validAt(data.at);
+
+        socket.to(room).emit('position-update', {
+            time: time,
+            at: at,
+            rate: (rate !== null && rate > 0.0625 && rate <= 16) ? rate : 1,
+            url: url,
+            serverNow: Date.now()
+        });
+
+        // Sonradan gelen doğru yerden başlasın
+        if (!roomPlayState[room]) roomPlayState[room] = {};
+        roomPlayState[room].time = time;
+        roomPlayState[room].type = 'play';
+        roomPlayState[room].at = at;
         roomPlayState[room].updatedAt = Date.now();
     });
 
